@@ -3,7 +3,7 @@ test.py[cod]
 .pypirc
 build
 dist
-feedback.egg-info
+*.egg-info
 
 # Eclipse
 .project

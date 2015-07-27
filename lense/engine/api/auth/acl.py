@@ -19,7 +19,7 @@ from lense.engine.api.app.gateway.models import DBGatewayACLAccessGlobal, DBGate
                                                   DBGatewayACLObjects
               
 # Configuration / Logger / Objects Manager
-CONF    = config.parse()
+CONF    = config.parse('SERVER')
 LOG     = logger.create('lense.engine.api.auth.acl', CONF.server.log)
 OBJECTS = ObjectsManager()
          
@@ -66,7 +66,7 @@ class ACLAuthObjects(object):
         if isinstance(new_objs, list):
             for i in new_objs:
                 if not (i[self.obj_def['obj_key']] in self.ids):
-                    LOG.info('Merging into objects list: %s' % str(i))
+                    LOG.info('Merging into objects list: {}'.format(str(i)))
                     self.ids.append(i[self.obj_def['obj_key']])
                     self.details.append(i)
         
@@ -75,18 +75,18 @@ class ACLAuthObjects(object):
         Determine if the user has global access to the utility.
         """
         for global_acl in global_acls:
-            LOG.info('Processing global ACL: %s' % str(global_acl))
+            LOG.info('Processing global ACL: {}'.format(str(global_acl)))
             
             # If access is explicitly denied, try another ACL
             if not global_acl['allowed'] == 'yes': continue
             
             # Get all supported global utilities for this ACL
             global_utilities = [x['utility_id'] for x in list(DBGatewayACLAccessGlobal.objects.filter(acl=global_acl['uuid']).values())]
-            LOG.info('Retrieved utilities for ACL "%s": %s' % (global_acl['acl'], str(global_utilities)))
+            LOG.info('Retrieved utilities for ACL "{}": {}'.format(global_acl['acl'], str(global_utilities)))
             
             # If the ACL supports the target utility
             if self.utility.uuid in global_utilities:
-                LOG.info('Global access allowed for utility: cls=%s, uuid=%s' % (self.utility.model.cls, self.utility.uuid))
+                LOG.info('Global access allowed for utility: cls={}, uuid={}'.format(self.utility.model.cls, self.utility.uuid))
                 
                 # Merge the object list
                 self._merge_objects(OBJECTS.get(self.type, filters=self.filters))
@@ -95,7 +95,7 @@ class ACLAuthObjects(object):
         """
         Determine if the user has access to specific objects in the utility.
         """
-        LOG.info('Checking object access: group=%s, objects=%s' % (group, str(object_acls)))
+        LOG.info('Checking object access: group={}, objects={}'.format(group, str(object_acls)))
         
         # No utility object association
         if not self.utility.model.object:
@@ -107,7 +107,7 @@ class ACLAuthObjects(object):
         
         # Process each object ACL
         for object_acl in object_acls[self.type]['details']:
-            LOG.info('Processing object ACL: %s' % str(object_acl))
+            LOG.info('Processing object ACL: {}'.format(str(object_acl)))
             
             # ACL access filter
             acl_filter = { 'owner': group }
@@ -116,8 +116,8 @@ class ACLAuthObjects(object):
         
             # Begin constructing a list of accessible objects
             for access_object in list(acl_class.objects.filter(**acl_filter).values()):
-                acl_key = '%s_id' % self.obj_def['acl_key']
-                LOG.info('Object access allowed for utility: cls=%s, uuid=%s, object=%s' % (self.utility.model.cls, self.utility.uuid, str(access_object)))
+                acl_key = '{}_id'.format(self.obj_def['acl_key'])
+                LOG.info('Object access allowed for utility: cls={}, uuid={}, object={}'.format(self.utility.model.cls, self.utility.uuid, str(access_object)))
                 
                 # Get the accessible object
                 self._merge_objects(OBJECTS.get(self.type, access_object[acl_key], filters=self.filters))
@@ -130,7 +130,7 @@ class ACLAuthObjects(object):
         
         # Set any filters
         self.filters = filters
-        LOG.info('User ACLs: %s' % self.user.acls)
+        LOG.info('User ACLs: {}'.format(self.user.acls))
         
         # Process each group the user is a member of
         for group, acl in self.user.acls.iteritems():
@@ -158,7 +158,7 @@ class ACLUtility(object):
         self.uuid   = self.model.uuid
         
         # Log utility retrieval
-        LOG.info('Constructed API utility: path=%s, method=%s, obj=%s, uuid=%s' % (self.path, self.method, str(self.model), self.uuid))
+        LOG.info('Constructed API utility: path={}, method={}, obj={}, uuid={}'.format(self.path, self.method, str(self.model), self.uuid))
         
     def get(self): 
         return self
@@ -206,7 +206,7 @@ class ACLUser(object):
         groups = [x['group_id'] for x in list(DBGroupMembers.objects.filter(member=user_obj.uuid).values())]
     
         # Log the user's group membership
-        LOG.info('Constructed group membership for user [%s]: %s' % (user_obj.uuid, json.dumps(groups)))
+        LOG.info('Constructed group membership for user [{}]: {}'.format(user_obj.uuid, json.dumps(groups)))
         
         # Return the group membership list
         return groups
@@ -262,10 +262,10 @@ class ACLGateway(object):
             
             # If the ACL supports the target utility
             if self.utility.uuid in global_access:
-                return valid(LOG.info('Global access granted for user [%s] to utility [%s]' % (self.user.name, self.utility.path)))
+                return valid(LOG.info('Global access granted for user [{}] to utility [{}]'.format(self.user.name, self.utility.path)))
         
         # Global access denied
-        return invalid('Global access denied for user [%s] to utility [%s]' % (self.user.name, self.utility.path))
+        return invalid('Global access denied for user [{}] to utility [{}]'.format(self.user.name, self.utility.path))
     
     def _check_object_access(self, object_acls, group):
         """
@@ -301,10 +301,10 @@ class ACLGateway(object):
             
                 # Check if the user has access to this object
                 if acl_class.objects.filter(**filter).count():
-                    return valid(LOG.info('Object level access granted for user [%s] to utility [%s] for object [%s:%s]' % (self.user.name, self.utility.path, self.utility.model.object, tgt_obj)))
+                    return valid(LOG.info('Object level access granted for user [{}] to utility [{}] for object [{}:{}]'.format(self.user.name, self.utility.path, self.utility.model.object, tgt_obj)))
         
             # Access denied
-            return invalid(' for object <%s:%s>' % (self.utility.model.object, tgt_obj))
+            return invalid(' for object <{}:{}>'.format(self.utility.model.object, tgt_obj))
         
         # User not accessing a specific object
         else:
@@ -352,7 +352,7 @@ class ACLGateway(object):
         
         # Access denied
         else:
-            err_msg = 'Access denied to utility [%s]%s' % (self.utility.path, obj_error)
+            err_msg = 'Access denied to utility [{}]{}'.format(self.utility.path, obj_error)
             
             # Log the error message
             LOG.error(err_msg)
@@ -371,25 +371,25 @@ class ACLGateway(object):
             return self._set_authorization(True)
             
         # Log the initial ACL authorization request
-        LOG.info('Running ACL gateway validation: path=%s, method=%s, user=%s' % (self.utility.path, self.utility.method, self.user.name))
+        LOG.info('Running ACL gateway validation: path={}, method={}, user={}'.format(self.utility.path, self.utility.method, self.user.name))
         
         # If the user is not a member of any groups (and not a host account type)
         if not self.user.groups and self.user.type == T_USER:
-            return self._set_authorization(False, LOG.error('User [%s] is not a member of any groups, membership required for utility authorization' % (self.user.name)))
+            return self._set_authorization(False, LOG.error('User [{}] is not a member of any groups, membership required for utility authorization'.format(self.user.name)))
         
         # Check if the account has access
         try:
             access_status = self._check_access()
             if not access_status['valid']:
                 return self._set_authorization(False, access_status['content'])
-            LOG.info('ACL gateway authorization success: path=%s, method=%s, user=%s' % (self.utility.path, self.utility.method, self.user.name))
+            LOG.info('ACL gateway authorization success: path={}, method={}, user={}'.format(self.utility.path, self.utility.method, self.user.name))
             
             # Account has access
             return self._set_authorization(True)
             
         # ACL gateway critical error
         except Exception as e:
-            return self._set_authorization(False, LOG.exception('Failed to run ACL gateway: %s' % str(e)))
+            return self._set_authorization(False, LOG.exception('Failed to run ACL gateway: {}'.format(str(e))))
     
     def target_object(self):
         """
@@ -399,7 +399,7 @@ class ACLGateway(object):
             _object = None if not (self.obj_key in self.request.data) else self.request.data[self.obj_key]
             
             # Log and return the object
-            LOG.info('Retrieved target object: %s' % str(_object))
+            LOG.info('Retrieved target object: {}'.format(str(_object)))
             return _object
         return None
         

@@ -19,7 +19,7 @@ class ObjectsManager(object):
     def __init__(self):
         
         # Configuration / logger objects
-        self.conf  = config.parse()
+        self.conf  = config.parse('SERVER')
         self.log   = logger.create(__name__, self.conf.utils.log)
         
         # Cache manager
@@ -38,7 +38,7 @@ class ObjectsManager(object):
         @param filters:  Extra filter parameters
         @type  filters:  dict
         """
-        self.log.info('Retrieving object data from model: type=%s, id=%s' % (obj_type, repr(obj_id)))
+        self.log.info('Retrieving object data from model: type={}, id={}'.format(obj_type, repr(obj_id)))
         
         # Get the ACL object definition
         acl_object  = ACLObjects.get(obj_type)
@@ -60,12 +60,12 @@ class ObjectsManager(object):
         
         # If an object filter is defined
         if obj_filter:
-            self.log.info('Applying object filters: %s' % json.dumps(obj_filter))
+            self.log.info('Applying object filters: {}'.format(json.dumps(obj_filter)))
             query_obj = query_obj.filter(**obj_filter)
             
         # If a values filter is defined
         if filters:
-            self.log.info('Applying value filters: %s' % json.dumps(filters))
+            self.log.info('Applying value filters: {}'.format(json.dumps(filters)))
             query_obj = query_obj.filter(**filters)
         
         # If no filters were defined
@@ -74,14 +74,14 @@ class ObjectsManager(object):
             query_obj = query_obj.all()
         
         # Log the constructed query object
-        self.log.info('Constructed object query: %s' % str(query_obj))
+        self.log.info('Constructed object query: {}'.format(str(query_obj)))
         
         # Attempt to retrieve the object
         obj_details = list(query_obj.values())
         
         # Log the retrieved details
         log_data = json.dumps(obj_details, cls=DjangoJSONEncoder)
-        self.log.info('Retrieved object details: length=%s, data=%s' % (len(log_data), (log_data[:75] + '...') if len(log_data) > 75 else log_data))
+        self.log.info('Retrieved object details: length={}, data={}'.format(len(log_data), (log_data[:75] + '...') if len(log_data) > 75 else log_data))
         
         # If the object doesn't exist
         if len(obj_details) == 0:
@@ -110,7 +110,7 @@ class ObjectsManager(object):
         
         # If the ACL object exists
         if len(ACLObjects.get_values(obj_type)) > 0:
-            self.log.info('Retrieving database object: type=%s, id=%s, cache=%s' % (obj_type, repr(obj_id), repr(cache)))
+            self.log.info('Retrieving database object: type={}, id={}, cache={}'.format(obj_type, repr(obj_id), repr(cache)))
             
             # If retrieving from the database cache table and caching not explicitly disabled
             if cache and not (self.conf.server.caching == False):
@@ -120,7 +120,7 @@ class ObjectsManager(object):
                 
                 # If cached data found
                 if cached_obj:
-                    self.log.info('Cached data found for object: type=%s, id=%s' % (obj_type, repr(obj_id)))
+                    self.log.info('Cached data found for object: type={}, id={}'.format(obj_type, repr(obj_id)))
                     return cached_obj
                 
                 # No cached data found, retrieve directly from the object model
@@ -132,7 +132,7 @@ class ObjectsManager(object):
             
         # Invalid ACL object type
         else:
-            self.log.error('Failed to retrieve object <%s> of type <%s>, object type not found' % (obj_id, obj_type))
+            self.log.error('Failed to retrieve object <{}> of type <{}>, object type not found'.format(obj_id, obj_type))
             
             # Return an empty result
             return None

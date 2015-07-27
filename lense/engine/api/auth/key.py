@@ -23,19 +23,19 @@ class APIKey(object):
         # Check if the user exists
         api_user = DBUser.objects.filter(username=id).count()
         if not api_user:
-            return invalid('Authentication failed, account [%s] not found')
+            return invalid('Authentication failed, account [{}] not found'.format(id))
 
         # Make sure the user is enabled
         user_obj = DBUser.objects.get(username=id)
         if not user_obj.is_active:
-            return invalid('Authentication failed, account [%s] is disabled' % id)
+            return invalid('Authentication failed, account [{}] is disabled'.format(id))
         
         # Return the API key row
         api_key_row = list(DBUserAPIKeys.objects.filter(user=user_obj.uuid).values())
 
         # User has no API key
         if not api_key_row: 
-            return invalid('Authentication failed, no API key found for account [%s]' % id)
+            return invalid('Authentication failed, no API key found for account [{}]'.format(id))
         return valid(api_key_row[0]['api_key'])
 
     def validate(self, request):
@@ -52,7 +52,7 @@ class APIKey(object):
             
         # Invalid API key
         if api_key['content'] != request.key:
-            return invalid('Client [%s] has submitted an invalid API key' % request.user)
+            return invalid('Client [{}] has submitted an invalid API key'.format(request.user))
         
         # API key looks OK
         return valid(request)

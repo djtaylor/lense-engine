@@ -24,7 +24,7 @@ class APIEmail(object):
     Wrapper class for handling emails.
     """
     def __init__(self):
-        self.conf = config.parse()
+        self.conf = config.parse('SERVER')
         self.log  = logger.create(__name__, self.conf.server.log)
     
     def send(self, subject, body, sender, recipient):
@@ -50,12 +50,12 @@ class APIEmail(object):
                 
                 # Send the email
                 send_mail(subject, body, from_email=sender, recipient_list=_recipient, fail_silently=False)
-                self.log.info('Sent email to "%s"' % str(_recipient))
+                self.log.info('Sent email to "{}"'.format(_recipient))
                 return True
             
             # Failed to send email
             except Exception as e:
-                self.log.exception('Failed to send email to "%s": %s' % (str(_recipient), str(e)))
+                self.log.exception('Failed to send email to "{}": {}'.format(str(_recipient), str(e)))
                 return False
 
         # SMTP disabled
@@ -94,7 +94,7 @@ class APIBare(object):
         self.email   = APIEmail()
         
         # Configuration / logger
-        self.conf    = config.parse()
+        self.conf    = config.parse('SERVER')
         self.log     = APILogger(self)
         self.log_int = logger.create(path, self.conf.server.log)
         
@@ -107,8 +107,8 @@ class APIBare(object):
         defaults = {
             'REQUEST_METHOD': self.method,
             'SERVER_NAME':    self.host,
-            'PATH_INFO':      '/%s' % self.path,
-            'REQUEST_URI':    '/api/%s' % self.path,
+            'PATH_INFO':      '/{}'.format(self.path),
+            'REQUEST_URI':    '/api/{}'.format(self.path),
             'SCRIPT_NAME':    '/api',
             'SERVER_PORT':    '10550',
             'CONTENT_TYPE':   'application/json'
@@ -148,8 +148,8 @@ class APIBase(object):
         self.email        = APIEmail()
         
         # Configuration / internal logger
-        self.conf         = config.parse()
-        self.log_int      = logger.create('%s:%s' % (self.path, self.method), self.conf.server.log)
+        self.conf         = config.parse('SERVER')
+        self.log_int      = logger.create('{}:{}'.format(self.path, self.method), self.conf.server.log)
 
         # External utilities / utilities object / cache manager / objects manager / ACL gateway
         self.utils        = utils
@@ -177,7 +177,7 @@ class APIBase(object):
                 mod_obj    = importlib.import_module(mod_name)
                 class_obj  = getattr(mod_obj, class_name)
                 class_inst = class_obj(copy.copy(self))
-                self.log_int.info('Loading utility class: [%s]' % class_inst)
+                self.log_int.info('Loading utility class: [{}]'.format(class_inst))
                 
                 # Add to the utilities object
                 util_obj[class_name] = class_inst
@@ -192,7 +192,7 @@ class APIBase(object):
         if 'socket' in self.request.data:
             
             # Log the socket connection
-            self.log_int.info('Received connection from web socket client: %s' % str(self.request.data['socket']))
+            self.log_int.info('Received connection from web socket client: {}'.format(str(self.request.data['socket'])))
             
             # Set the web socket response attributes
             self.websock = self.socket.set(self.request.data['socket'])
@@ -306,7 +306,7 @@ class APILogger(object):
         @type  log_msg:  str
         """
         self.log_msg = log_msg
-        self.api.log_int.info('client(%s): %s' % (self.client, log_msg))
+        self.api.log_int.info('client({}): {}'.format(self.client, log_msg))
         return log_msg
         
     def debug(self, log_msg):
@@ -316,7 +316,7 @@ class APILogger(object):
         @param log_msg:  The message to log/return to the client
         @type  log_msg:  str
         """
-        self.api.log_int.info('client(%s): %s' % (self.client, log_msg))
+        self.api.log_int.info('client({}): {}'.format(self.client, log_msg))
         return log_msg
         
     def success(self, log_msg, web_data={}):
@@ -339,7 +339,7 @@ class APILogger(object):
         self.log_msg = _set_log_msg(log_msg)
             
         # Log the success message
-        self.api.log_int.info('client(%s): %s' % (self.client, log_msg))
+        self.api.log_int.info('client({}): {}'.format(self.client, log_msg))
         
         # Return the HTTP response
         return HttpResponse(self._api_response(True, web_data), MIME_TYPE.APPLICATION.JSON, status=200)
@@ -361,7 +361,7 @@ class APILogger(object):
         self.log_msg = 'An exception occured when processing your API request' if not log_msg else log_msg
     
         # Log the exception
-        self.api.log_int.exception('client(%s): %s' % (self.client, self.log_msg))
+        self.api.log_int.exception('client({}): {}'.format(self.client, self.log_msg))
     
         # If returning a response to a client
         if code and isinstance(code, int):
@@ -389,7 +389,7 @@ class APILogger(object):
         self.log_msg = 'An unknown error occured when processing your API request' if not log_msg else log_msg
         
         # Log the error message
-        self.api.log_int.error('client(%s): %s' % (self.client, self.log_msg))
+        self.api.log_int.error('client({}): {}'.format(self.client, self.log_msg))
         
         # If returning a resposne to a client
         if code and isinstance(code, int):

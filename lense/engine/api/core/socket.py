@@ -5,7 +5,7 @@ from socketIO_client import SocketIO
 from lense.common import config
 from lense.common import logger
 
-class SocketResponse:
+class SocketResponse(object):
     """
     SocketResponse
     
@@ -16,7 +16,7 @@ class SocketResponse:
     def __init__(self):
         
         # Configuration / logger
-        self.conf       = config.parse()
+        self.conf       = config.parse('SERVER')
         self.log        = logger.create(__name__, self.conf.server.log)
         
         # SocketIO client / web socket parameters
@@ -32,7 +32,7 @@ class SocketResponse:
             # If the Socket.IO proxy server is enabled
             if self.conf.socket.enable:
                 
-                self.log.info('Opening SocketIO proxy connection: %s:%s' % (self.conf.socket.host, self.conf.socket.port))
+                self.log.info('Opening SocketIO proxy connection: {}:{}'.format(self.conf.socket.host, self.conf.socket.port))
             
                 # Open the Socket.IO client connection
                 self.socket_io = SocketIO(self.conf.socket.host, int(self.conf.socket.port))
@@ -45,7 +45,7 @@ class SocketResponse:
             
         # Critical error when opening connection
         except Exception as e:
-            self.log.info('Failed to initialize SocketIO proxy connection: %s' % e)
+            self.log.info('Failed to initialize SocketIO proxy connection: {}'.format(str(e)))
             return False
         
         # Return the constructed Socket.IO client

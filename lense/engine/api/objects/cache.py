@@ -20,7 +20,7 @@ class CacheManager(object):
     def __init__(self):
         
         # Configuration / logger objects
-        self.conf = config.parse()
+        self.conf = config.parse('SERVER')
         self.log  = logger.create(__name__, self.conf.utils.log)
         
     def get_object(self, obj_type, obj_id=None, decode=True, filters={}):
@@ -36,7 +36,7 @@ class CacheManager(object):
         # If retrieving a single object
         if obj_id:
             obj_filter['object_id'] = obj_id
-        self.log.info('No cached data for object <%s> of type <%s> found' % (obj_id, obj_type))
+        self.log.info('No cached data for object <{}> of type <{}> found'.format(obj_id, obj_type))
         
         # Return empty data
         return False
@@ -52,7 +52,7 @@ class CacheManager(object):
                 
                 # If supplied, values argument must be a dictionary
                 if values and not isinstance(values, dict):
-                    self.log.error('Failed to cache object <%s> of type <%s>, values keyword must contain a dictionary' % (obj_id, obj_type))
+                    self.log.error('Failed to cache object <{}> of type <{}>, values keyword must contain a dictionary'.format(obj_id, obj_type))
                     return False
                 
                 # Get the ACL object definition
@@ -78,7 +78,7 @@ class CacheManager(object):
                     
                     # If an expired cache entry exists
                     if DBClusterCache.objects.filter(**cache_filter).count():
-                        self.log.info('Base object <%s> of type <%s> no longer exists, flushing cached entry' % (obj_id, obj_type))
+                        self.log.info('Base object <{}> of type <{}> no longer exists, flushing cached entry'.format(obj_id, obj_type))
                         
                         # Flush the old cache entry
                         DBClusterCache.objects.filter(**cache_filter).delete()
@@ -99,7 +99,7 @@ class CacheManager(object):
                     
                     # If the cached data hasn't changed
                     if cache_row['object_hash'] == obj_hash:
-                        return self.log.info('Cached data unchanged for object <%s> of type <%s>' % (obj_id, obj_type))
+                        return self.log.info('Cached data unchanged for object <{}> of type <{}>'.format(obj_id, obj_type))
                     
                     # Update the cached data
                     DBClusterCache.objects.filter(**cache_filter).update(object_data=obj_details, object_size=obj_size)
@@ -117,15 +117,15 @@ class CacheManager(object):
                     ).save()
                 
                 # Object successfull cached
-                self.log.info('Cached data for object <%s> of type <%s>: bytes_cached=%s, hash=%s' % (obj_id, obj_type, str(obj_size), obj_hash))
+                self.log.info('Cached data for object <{}> of type <{}>: bytes_cached={}, hash={}'.format(obj_id, obj_type, str(obj_size), obj_hash))
                 
             # Critical error when caching object
             except Exception as e:
-                self.log.exception('Failed to cache object <%s> of type <%s>: %s' % (obj_id, obj_type, str(e)))
+                self.log.exception('Failed to cache object <{}> of type <{}>: {}'.format(obj_id, obj_type, str(e)))
             
         # ACL object does not exist
         else:
-            self.log.error('Cannot cache object <%s> of type <%s>, ACL object type not found' % (obj_id, obj_type))
+            self.log.error('Cannot cache object <{}> of type <{}>, ACL object type not found'.format(obj_id, obj_type))
     
     def flush_object(self, obj_type, obj_id):
         """
@@ -145,11 +145,11 @@ class CacheManager(object):
             DBClusterCache.objects.filter(**filter).delete()
             
             # Successfully flushed object cache
-            self.log.info('Successfully flushed cache for object <%s> of type <%s>' % (obj_id, obj_type))
+            self.log.info('Successfully flushed cache for object <{}> of type <{}>'.format(obj_id, obj_type))
             
         # Object does not exist
         else:
-            self.log.error('Failed to flush cache for object <%s> of type <%s>, cache entry not found' % (obj_id, obj_type))
+            self.log.error('Failed to flush cache for object <{}> of type <{}>, cache entry not found'.format(obj_id, obj_type))
             
     def flush_all(self):
         """

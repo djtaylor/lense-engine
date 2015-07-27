@@ -16,7 +16,7 @@ class APIToken(object):
     def __init__(self):
         
         # Configuration / logger objects
-        self.conf = config.parse()
+        self.conf = config.parse('SERVER')
         self.log  = logger.create(__name__, self.conf.server.log)
     
     def _get_api_token(self, id):
@@ -27,12 +27,12 @@ class APIToken(object):
         # Check if the user exists
         api_user = DBUser.objects.filter(username=id).count()
         if not api_user:
-            return invalid('Authentication failed, account [%s] not found' % id)
+            return invalid('Authentication failed, account [{}] not found'.format(id))
             
         # Make sure the user is enabled
         user_obj = DBUser.objects.get(username=id)
         if not user_obj.is_active:
-            return invalid('Authentication failed, account [%s] is disabled' % id)
+            return invalid('Authentication failed, account [{}] is disabled'.format(id))
         
         # Return the API token row
         api_token_row = list(DBUserAPITokens.objects.filter(user=user_obj.uuid).values())
@@ -50,7 +50,7 @@ class APIToken(object):
         expires   = datetime.datetime.now() + datetime.timedelta(hours=settings.API_TOKEN_LIFE)
             
         # Create a new API token
-        self.log.info('Generating API token for client [%s]' % id)
+        self.log.info('Generating API token for client [{}]'.format(id))
         db_token  = DBUserAPITokens(id = None, user=DBUser.objects.get(username=id), token=token_str, expires=expires)
         db_token.save()
         
@@ -61,7 +61,7 @@ class APIToken(object):
         """
         Get the API authentication token for a user or host account.
         """
-        self.log.info('Retrieving API token for ID [%s]' % id)
+        self.log.info('Retrieving API token for ID [{}]'.format(id))
             
         # Check if the user exists
         api_user  = DBUser.objects.filter(username=id).count()
@@ -76,7 +76,7 @@ class APIToken(object):
         # If the user doesn't have a token yet
         if api_token['content'] == None:
             api_token['content'] = self.create(id=id)
-        self.log.info('Retrieved token for API ID [%s]: %s' % (id, api_token['content']))
+        self.log.info('Retrieved token for API ID [{}]: {}'.format(id, api_token['content']))
         return api_token['content']
     
     def validate(self, request):
@@ -88,7 +88,7 @@ class APIToken(object):
         if not hasattr(request, 'user') or not hasattr(request, 'token'):
             self.log.error('Missing required token validation headers [api_user] and/or [api_token]')
             return False
-        self.log.info('Validating API token for ID [%s]: %s' % (request.user, request.token))
+        self.log.info('Validating API token for ID [{}]: {}'.format(request.user, request.token))
             
         # Get the users API token from the database
         db_token = self._get_api_token(id=request.user)
@@ -100,6 +100,6 @@ class APIToken(object):
 
         # Make sure the token is valid
         if request.token != db_token['content']:
-            self.log.error('Client [%s] has submitted an invalid API token' % request.user)
+            self.log.error('Client [{}] has submitted an invalid API token'.format(request.user))
             return False
         return True

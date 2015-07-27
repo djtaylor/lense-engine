@@ -1,1 +1,5 @@
 include DESCRIPTION.rst
+include lense/data/bin/lense-socket
+include lense/data/conf/apache/engine-wsgi.default.conf
+include lense/data/conf/engine.default.json
+recursive-include lense/data/templates/engine *

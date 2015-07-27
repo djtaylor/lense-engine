@@ -46,7 +46,7 @@ class JSONField(models.TextField):
         
         # If the data type is invalid
         if not isinstance(value, (list, dict, six.string_types)):
-            raise ValidationError('JSONField value invalid data %s, only accepts <dict>, <list>, or <str>' % repr(type(value)))
+            raise ValidationError('JSONField value invalid data {}, only accepts <dict>, <list>, or <str>'.format(repr(type(value))))
         
         # If saving a list or dictionary
         if isinstance(value, (list, dict)):
@@ -57,7 +57,7 @@ class JSONField(models.TextField):
                 
             # Invalid format
             except Exception as e:
-                raise ValidationError('JSONField value of %s cannot be converted to JSON string: %s' % (repr(type(value)), str(e)))
+                raise ValidationError('JSONField value of {} cannot be converted to JSON string: {}'.format(repr(type(value)), str(e)))
             
         # If saving a string
         if isinstance(value, six.string_types):
@@ -71,7 +71,7 @@ class JSONField(models.TextField):
             
             # Invalid format
             except Exception as e:
-                raise ValidationError('JSONField value of %s cannot be converted to JSON object: %s' % (repr(type(value)), str(e)))
+                raise ValidationError('JSONField value of {} cannot be converted to JSON object: {}'.format(repr(type(value)), str(e)))
 
 class NullTextField(models.TextField):
     """

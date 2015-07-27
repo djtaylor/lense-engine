@@ -1,11 +1,12 @@
 import os
 
 # Lense Libraries
+from lense import PKG_ROOT
+from lense.common.vars import T_ROOT, DB_ENCRYPT_DIR
 import lense.common.config as config
-from lense.common.vars import L_BASE
 
 # Configuration
-CONFIG           = config.parse()
+CONFIG           = config.parse('SERVER')
 
 # Project base directory
 BASE_DIR         = os.path.dirname(os.path.dirname(__file__))
@@ -40,14 +41,14 @@ ROOT_URLCONF     = 'lense.engine.api.core.urls'
 WSGI_APPLICATION = 'lense.engine.api.core.wsgi.application'
 
 # API request templates
-API_TEMPLATES    = '%s/python/lense/engine/templates/api' % L_BASE
+API_TEMPLATES    = T_ROOT
 
 # Template directories
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-           '%s/python/lense/engine/templates' % L_BASE
+           '{}/data/templates/engine'.format(L_BASE)
         ],
         'APP_DIRS': False,
         'OPTIONS': {
@@ -68,7 +69,7 @@ TEMPLATES = [
 EMAIL_HOST       = CONFIG.email.smtp_host
 
 # Database encryption keys
-ENCRYPTED_FIELDS_KEYDIR = '%s/dbkey' % L_BASE
+ENCRYPTED_FIELDS_KEYDIR = DB_ENCRYPT_DIR
 
 # Database connections
 DATABASES = {

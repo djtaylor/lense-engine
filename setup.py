@@ -8,17 +8,17 @@ long_desc = open('DESCRIPTION.rst').read()
 
 # Run the setup
 setup(
-    name='lense-engine',
-    version=version,
-    description='Lense API platform engine libraries',
-    long_description=long_desc,
-    author='David Taylor',
-    author_email='djtaylor13@gmail.com',
-    url='http://github.com/djtaylor/lense-engine',
-    license='GPLv3',
-    packages=find_packages(),
-    keywords='lense api server platform engine',
-    classifiers=[
+    name             = 'lense-engine',
+    version          = version,
+    description      = 'Lense API platform engine libraries',
+    long_description = long_desc,
+    author           = 'David Taylor',
+    author_email     = 'djtaylor13@gmail.com',
+    url              = 'http://github.com/djtaylor/lense-engine',
+    license          = 'GPLv3',
+    packages         = find_packages(),
+    keywords         = 'lense api server platform engine',
+    classifiers      = [
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
@@ -45,9 +45,10 @@ setup(
         'MySQL-python>=1.2.3',
         'python-ldap>=2.4.10'
     ],
-    entry_points = {
+    entry_points     = {
         'console_scripts': [
             'lense-server = lense.common.service:cli',
         ],
-    }
+    },
+    include_package_data = True
 )

@@ -1,0 +1,101 @@
+{
+	// API Administrator
+	//
+	// Define API administrator attributes used when creating the
+	// administrator account, as well as used when established a
+	// connection with internal utilities.
+	"admin": {
+		"group_name": "admin",
+		"group_uuid": "00000000-0000-0000-0000-000000000000",
+		"api_key": ""
+	},
+	
+	// Authentication Configuration
+	//
+	// Define which authentication backend to use. Options are either
+	// 'ldap' or 'database'. If using LDAP authentication, the LDAP
+	// configuration section must be fully defined.
+	"auth": {
+		"backend": "database"
+	},
+	
+	// Engine Configuration
+	//
+	// Define settings to use for setting up the Lense engine.
+	"engine": {
+		"log": "data/log/engine.log",
+		"host": "localhost",
+		"proto": "http",
+		"port": 10550,
+		"secret": "DJANGO_SECRET",
+		"caching": false,
+		"debug": true,
+		"ssl_key": "",
+		"ssl_cert": "",
+		"ssl_ca": ""
+	},
+	
+	// LDAP Configuration
+	// 
+	// Define settings used when performing LDAP authentication.
+	"ldap": {
+		"host": ""
+		"user": "",
+		"password": "",
+		"map": "data/conf/ldap.json"
+	},
+	
+	// Database Configuration
+	//
+	// Define settings used to connect to the Lense database.
+	"db": {
+		"host": "localhost",
+		"user": "lense",
+		"port": 3306,
+		"password": ""
+	},
+	
+	// Portal Configuration
+	//
+	// Define basic portal settings to use when relaying SocketIO messages
+	// back to the web client.
+	"portal": {
+		"host": "localhost",
+		"port": 80,
+		"proto": "http"
+	},
+	
+	// SMTP Email Configuration
+	//
+	// Define SMTP settings to use if enabling email.
+	"email": {
+		"smtp_enable": false,
+		"smtp_port": 25,
+		"smtp_user": "",
+		"smtp_pass": ""
+	},
+	
+	// Utilities Configuration
+	//
+	// Basic configuration for internal utilities.
+	"utils": {
+		"log": "data/log/utils.log"
+	},
+	
+	// SocketIO Configuration
+	//
+	// Define configuration settings for the SocketIO proxy server.
+	"socket": {
+		"enable": false,
+		"exe": "data/bin/lense-socket",
+		"pid": "data/run/socket.pid",
+		"log": "data/log/socket.log",
+		"host": "localhost",
+		"bind_ip": "",
+		"proto": "http",
+		"port": 10551,
+		"ssl_key": "",
+		"ssl_cert": "",
+		"ssl_ca": ""
+	}
+}

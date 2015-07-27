@@ -48,18 +48,6 @@ class APIExtractor(object):
         Enable/disable the cached data flag.
         """
         self._cache = toggle
-    
-    def datacenters(self):
-        """
-        Extract all datacenter definitions.
-        """
-        return self._get(obj_type='datacenter')
-    
-    def routers(self):
-        """
-        Extract all router definitions.
-        """
-        return self._get(obj_type='net_router')
 
 class APIQuerySet(models.query.QuerySet):
     """
@@ -92,64 +80,6 @@ class APIQuerySet(models.query.QuerySet):
             return True
         return False
         
-    def _parse_datacenters(self, _object):
-        """
-        Parse out any datacenter definitions.
-        """
-        
-        # Extract any datacenter foreign keys
-        if self._key_set(_object, 'datacenter_id'):
-            
-            # Extract all datacenters
-            _datacenters = self.extract.datacenters()
-            
-            # Update the datacenter key
-            _object.update({
-                'datacenter': {
-                    'uuid': copy(_object['datacenter_id']),
-                    'name': [x['name'] for x in _datacenters if x['uuid'] == _object['datacenter_id']][0]
-                }
-            })
-        
-        # Remove the old datacenter key
-        if self._key_exists(_object, 'datacenter_id'):
-            
-            # Add the values key if not already set
-            if not self._key_exists(_object, 'datacenter'):
-                _object['datacenter'] = None
-            
-            # Remove the reference to the foreign key
-            del _object['datacenter_id']
-            
-    def _parse_routers(self, _object):
-        """
-        Parse out any datacenter definitions.
-        """
-        
-        # Extract any router foreign keys
-        if self._key_set(_object, 'router_id'):
-            
-            # Extract all routers
-            _routers = self.extract.routers()
-            
-            # Update the router key
-            _object.update({
-                'router': {
-                    'uuid': copy(_object['router_id']),
-                    'name': [x['name'] for x in _routers if x['uuid'] == _object['router_id']][0]
-                }
-            })
-        
-        # Remove the old router key
-        if self._key_exists(_object, 'router_id'):
-            
-            # Add the values key if not already set
-            if not self._key_exists(_object, 'router'):
-                _object['router'] = None
-            
-            # Remove the reference to the foreign key
-            del _object['router_id']
-        
     def _parse_metadata(self, _object):
         """
         Parse out any JSON metadata strings.
@@ -179,12 +109,6 @@ class APIQuerySet(models.query.QuerySet):
             for timefield in self.timefields:
                 if timefield in _object:
                     _object[timefield] = _object[timefield].strftime(self.timestamp)
-                   
-            # Look for datacenter definitions
-            self._parse_datacenters(_object)
-            
-            # Look for router definitions
-            self._parse_routers(_object)
             
             # Look for metadata definitions
             self._parse_metadata(_object)

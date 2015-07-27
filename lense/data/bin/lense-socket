@@ -1,8 +1,8 @@
 /**
- * CloudScape Socket.IO Server
+ * Lense Socket.IO Server
  * 
- * A Node.JS/Socket.IO API proxy server to handle requests from the CloudScape web UI.
- * Loads configuration options from the $CLOUDSCAPE_BASE/conf/server.conf file.
+ * A Node.JS/Socket.IO API proxy server to handle requests from the Lense web UI.
+ * Loads configuration options from the /etc/lense/engine.conf file.
  */
 function SocketProxy() {
 	self 	     = this;
@@ -25,7 +25,7 @@ function SocketProxy() {
 	
 	// Filesystem and Socket.IO modules
 	this.fs      = require('fs');
-	this.io      = require('/home/cloudscape/node_modules/socket.io');
+	this.io      = require('socket.io');
 	
 	// Listener and request HTTP modules
 	this.http_l  = require('http');
@@ -36,16 +36,16 @@ function SocketProxy() {
 	this.https_r = require('https');
 	
 	// Configuration and base logger modules
-	this.ini     = require('/home/cloudscape/node_modules/ini');
-	this.winston = require('/home/cloudscape/node_modules/winston');
+	this.ini     = require('ini');
+	this.winston = require('winston');
 	
 	/**
 	 * Socket Configuration
 	 * 
-	 * Method used to parse the $CLOUDSCAPE_BASE/conf/server.conf file.
+	 * Method used to parse the /etc/lense/engine.conf file.
 	 */
 	this.conf_init = function() {
-		conf_file = self.fs.readFileSync(process.env.CLOUDSCAPE_BASE + '/conf/server.conf', 'utf-8')
+		conf_file = self.fs.readFileSync('/etc/lense/engine.conf', 'utf-8')
 		
 		// Attempt the parse the configuration
 		try {
