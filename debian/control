@@ -1,0 +1,10 @@
+Package: lense-engine
+Version: 0.1-1
+Architecture: all
+Essential: no
+Section: python
+Priority: optional
+Depends: python (>=2.7)
+Maintainer: David Taylor <djtaylor13@gmail.com>
+Homepage: https://github.com/djtaylor/lense-engine
+Description: Libraries for the Lense API engine.
