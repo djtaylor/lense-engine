@@ -88,6 +88,7 @@
 		"enable": false,
 		"exe": "/usr/bin/lense-socket",
 		"pid": "/var/run/lense/socket.pid",
+		"lock": "/var/lock/lense/socket",
 		"log": "/var/log/lense/socket.log",
 		"host": "localhost",
 		"bind_ip": "",

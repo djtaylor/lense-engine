@@ -1,0 +1,31 @@
+#!/usr/bin/python
+import lense.common.config
+from lsbinit import LSBInit
+
+### BEGIN INIT INFO
+# Provides:          lense-socket
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Required-Start:    $syslog
+# Required-Stop:     $syslog
+# X-Interactive:     true
+# Short-Description: Lense SocketIO Proxy
+# Description:       The Lense SocketIO proxy server
+### END INIT INFO
+
+if __name__ == '__main__':
+	
+	# Get the configuration
+	CONFIG = config.parse('SERVER')
+	
+	# Create the service handler
+	service = LSBInit(
+		name = 'lense-socket',
+		desc = 'Lense SocketIO proxy server',
+		pid  = CONFIG.socket.pid,
+		lock = CONFIG.socket.lock,
+		exe  = ['nodejs', CONFIG.socket.exe]
+	)
+	
+	# Launch the service handler
+	service.interface()

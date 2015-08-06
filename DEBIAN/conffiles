@@ -1,0 +1,5 @@
+/etc/lense/engine.json
+/etc/lense/engine.default.json
+/etc/lense/engine-wsgi.conf
+/etc/lense/engine-wsgi.default.conf
+/etc/init.d/lense-socket
