@@ -1,0 +1,101 @@
+{
+	// API Administrator
+	//
+	// Define API administrator attributes used when creating the
+	// administrator account, as well as used when established a
+	// connection with internal utilities.
+	"admin": {
+		"group": "00000000-0000-0000-0000-000000000000",
+		"key": ""
+	},
+	
+	// Authentication Configuration
+	//
+	// Define which authentication backend to use. Options are either
+	// 'ldap' or 'database'. If using LDAP authentication, the LDAP
+	// configuration section must be fully defined.
+	"auth": {
+		"backend": "database"
+	},
+	
+	// Engine Configuration
+	//
+	// Define settings to use for setting up the Lense engine.
+	"engine": {
+		"log": "/var/log/lense/engine.log",
+		"host": "localhost",
+		"proto": "http",
+		"port": 10550,
+		"secret": "DJANGO_SECRET",
+		"caching": false,
+		"debug": true,
+		"ssl_key": "",
+		"ssl_cert": "",
+		"ssl_ca": ""
+	},
+	
+	// LDAP Configuration
+	// 
+	// Define settings used when performing LDAP authentication.
+	"ldap": {
+		"host": ""
+		"user": "",
+		"password": "",
+		"map": "/etc/lense/ldap.json"
+	},
+	
+	// Database Configuration
+	//
+	// Define settings used to connect to the Lense database.
+	"db": {
+		"host": "localhost",
+		"user": "lense",
+		"port": 3306,
+		"password": ""
+	},
+	
+	// Portal Configuration
+	//
+	// Define basic portal settings to use when relaying SocketIO messages
+	// back to the web client.
+	"portal": {
+		"host": "localhost",
+		"port": 80,
+		"proto": "http"
+	},
+	
+	// SMTP Email Configuration
+	//
+	// Define SMTP settings to use if enabling email.
+	"email": {
+		"smtp_enable": false,
+		"smtp_port": 25,
+		"smtp_user": "",
+		"smtp_pass": ""
+	},
+	
+	// Utilities Configuration
+	//
+	// Basic configuration for internal utilities.
+	"utils": {
+		"log": "/var/log/lense/utils.log"
+	},
+	
+	// SocketIO Configuration
+	//
+	// Define configuration settings for the SocketIO proxy server.
+	"socket": {
+		"enable": false,
+		"exe": "/usr/bin/lense-socket",
+		"pid": "/var/run/lense/socket.pid",
+		"lock": "/var/lock/lense/socket",
+		"log": "/var/log/lense/socket.log",
+		"host": "localhost",
+		"bind_ip": "",
+		"proto": "http",
+		"port": 10551,
+		"ssl_key": "",
+		"ssl_cert": "",
+		"ssl_ca": ""
+	}
+}
