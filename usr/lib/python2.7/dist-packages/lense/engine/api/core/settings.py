@@ -1,8 +1,7 @@
 import os
 
 # Lense Libraries
-from lense import PKG_ROOT
-from lense.common.vars import T_ROOT, DB_ENCRYPT_DIR
+from lense.common.vars import TEMPLATES, DB_ENCRYPT_DIR
 import lense.common.config as config
 
 # Configuration
@@ -48,7 +47,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-           '{}/data/templates/engine'.format(L_BASE)
+           TEMPLATES.ENGINE
         ],
         'APP_DIRS': False,
         'OPTIONS': {

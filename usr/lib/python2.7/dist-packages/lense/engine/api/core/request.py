@@ -7,9 +7,9 @@ import importlib
 from django.http import HttpResponse, HttpResponseServerError
 
 # Lense Libraries
-from lense import PKG_ROOT
 from lense.common import config
 from lense.common import logger
+from lense.common.vars import TEMPLATES
 from lense.engine.api.base import APIBase
 from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET
 from lense.common.utils import JSONTemplate
@@ -60,10 +60,10 @@ class RequestObject(object):
         self.data        = self._load_data()
     
         # API authorization attributes
-        self.user        = self.headers.get('HTTP_{}'.format(HEADER.API_USER.upper().replace('-', '_')))
-        self.group       = self.headers.get('HTTP_{}'.format(HEADER.API_GROUP.upper().replace('-', '_')))
-        self.key         = self.headers.get('HTTP_{}'.format(HEADER.API_KEY.upper().replace('-', '_')), '')
-        self.token       = self.headers.get('HTTP_{}'.format(HEADER.API_TOKEN.upper().replace('-', '_')), '')
+        self.user        = self.headers.get('HTTP_{0}'.format(HEADER.API_USER.upper().replace('-', '_')))
+        self.group       = self.headers.get('HTTP_{0}'.format(HEADER.API_GROUP.upper().replace('-', '_')))
+        self.key         = self.headers.get('HTTP_{0}'.format(HEADER.API_KEY.upper().replace('-', '_')), '')
+        self.token       = self.headers.get('HTTP_{0}'.format(HEADER.API_TOKEN.upper().replace('-', '_')), '')
     
         # Debug logging for each request
         self._log_request()
@@ -72,7 +72,7 @@ class RequestObject(object):
         """
         Helper method for debug logging for each request.
         """
-        LOG.info('REQUEST_OBJECT: method={}, path={}, client={}, user={}, group={}, key={}, token={}, data={}'.format(
+        LOG.info('REQUEST_OBJECT: method={0}, path={1}, client={2}, user={3}, group={4}, key={5}, token={6}, data={7}'.format(
             self.method,
             self.path,
             self.client,
@@ -171,7 +171,7 @@ class RequestManager(object):
         """
         
         # Log the user and group attempting to authenticate
-        LOG.info('Authenticating API user: {}, group={}'.format(self.request.user, repr(self.request.group)))
+        LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user, repr(self.request.group)))
         
         # Authenticate key for token requests
         if self.request.path == PATH.GET_TOKEN:
@@ -182,7 +182,7 @@ class RequestManager(object):
                 return JSONError(error='Invalid API key', status=401).response()
             
             # API key authentication successfull
-            LOG.info('API key authentication successfull for user: {}'.format(self.request.user))
+            LOG.info('API key authentication successfull for user: {0}'.format(self.request.user))
             
         # Authenticate token for API requests
         else:
@@ -192,7 +192,7 @@ class RequestManager(object):
                 return JSONError(error='Invalid API token', status=401).response()
             
             # API token looks good
-            LOG.info('API token authentication successfull for user: {}'.format(self.request.user))
+            LOG.info('API token authentication successfull for user: {0}'.format(self.request.user))
     
         # Check for a user account
         if DBUser.objects.filter(username=self.request.user).count():
@@ -210,7 +210,7 @@ class RequestManager(object):
             
             # If the user is not a member of the group
             if not is_member:
-                return JSONError(error='API user [{}] is not a member of group [{}]'.format(self.request.user, self.request.group), status=401).response()
+                return JSONError(error='API user [{0}] is not a member of group [{1}]'.format(self.request.user, self.request.group), status=401).response()
     
     def _validate(self):
         """
@@ -331,7 +331,7 @@ class UtilityMapper(object):
         """
         
         # Load the socket request validator map
-        sv = json.loads(open('{}/socket.json'.format(PKG_ROOT), 'r').read())
+        sv = json.loads(open('{0}/api/base/socket.json'.format(TEMPLATES.ENGINE), 'r').read())
         
         # Make sure the '_children' key exists
         if not '_children' in j['root']:
@@ -375,7 +375,7 @@ class UtilityMapper(object):
             
             # Error constructing request map, skip to next utility map
             except Exception as e:
-                LOG.exception('Failed to load request map for utility [{}]: {} '.format(utility['path'], str(e)))
+                LOG.exception('Failed to load request map for utility [{0}]: {1} '.format(utility['path'], str(e)))
                 continue
                     
         # All template maps constructed
@@ -397,11 +397,11 @@ class UtilityMapper(object):
         
         # Invalid request path
         if not self.path in self.map:
-            return invalid(JSONError(error='Unsupported request path: [{}]'.format(self.path), status=400).response())
+            return invalid(JSONError(error='Unsupported request path: [{0}]'.format(self.path), status=400).response())
         
         # Verify the request method
         if self.method != self.map[self.path]['method']:
-            return invalid(JSONError(error='Unsupported request method [{}] for path [{}]'.format(self.method, self.path), status=400).response())
+            return invalid(JSONError(error='Unsupported request method [{0}] for path [{1}]'.format(self.method, self.path), status=400).response())
         
         # Get the API module, class handler, and name
         self.handler_obj = {
@@ -411,7 +411,7 @@ class UtilityMapper(object):
             'api_utils': self.map[self.path]['utils'],
             'api_map':   self.map[self.path]['json']
         }
-        LOG.info('Parsed handler object for API utility [{}]: {}'.format(self.path, self.handler_obj))
+        LOG.info('Parsed handler object for API utility [{0}]: {1}'.format(self.path, self.handler_obj))
         
         # Return the handler module path
         return valid(self.handler_obj)
