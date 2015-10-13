@@ -5,20 +5,19 @@ from lense.common.vars import TEMPLATES, DB_ENCRYPT_DIR
 import lense.common.config as config
 
 # Configuration
-CONFIG           = config.parse('SERVER')
+CONFIG           = config.parse('ENGINE')
 
 # Project base directory
 BASE_DIR         = os.path.dirname(os.path.dirname(__file__))
 
 # Debug mode
 DEBUG            = True
-TEMPLATE_DEBUG   = True
 
 # Hosts allowed to use the API
 ALLOWED_HOSTS    = []
 
 # Secret key
-SECRET_KEY       = CONFIG.server.secret
+SECRET_KEY       = CONFIG.engine.secret
 
 # Internationalization settings
 LANGUAGE_CODE    = 'en-us'
@@ -40,7 +39,7 @@ ROOT_URLCONF     = 'lense.engine.api.core.urls'
 WSGI_APPLICATION = 'lense.engine.api.core.wsgi.application'
 
 # API request templates
-API_TEMPLATES    = T_ROOT
+API_TEMPLATES    = '{0}/api'.format(TEMPLATES.ENGINE)
 
 # Template directories
 TEMPLATES = [
