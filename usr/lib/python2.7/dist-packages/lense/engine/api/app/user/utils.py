@@ -27,8 +27,8 @@ class UserDelete:
         
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
-            return invalid('Cannot delete user [%s], not found or access denied' % self.user)
-        self.api.log.info('Deleting user account [%s]' % self.user)
+            return invalid('Cannot delete user [{0}], not found or access denied'.format(self.user))
+        self.api.log.info('Deleting user account [{0}]'.format(self.user))
         
         # Cannot delete default administrator
         if self.user == U_ADMIN:
@@ -62,8 +62,8 @@ class UserEnable:
         
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
-            return invalid('Cannot enable user [%s], not found or access denied' % self.user)
-        self.api.log.info('Enabling user account [%s]' % self.user)
+            return invalid('Cannot enable user [{0}], not found or access denied'.format(self.user))
+        self.api.log.info('Enabling user account [{0}]'.format(self.user))
 
         # Cannot enable/disable default administrator
         if self.user == U_ADMIN:
@@ -99,8 +99,8 @@ class UserDisable:
         
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
-            return invalid('Cannot disable user [%s], not found or access denied' % self.user)
-        self.api.log.info('Disabling user account [%s]' % self.user)
+            return invalid('Cannot disable user [{0}], not found or access denied'.format(self.user))
+        self.api.log.info('Disabling user account [{0}]'.format(self.user))
 
         # Cannot enable/disable default administrator
         if self.user == U_ADMIN:
@@ -136,8 +136,8 @@ class UserResetPassword:
         
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
-            return invalid('Cannot reset password for user [%s], not found or access denied' % self.user)
-        self.api.log.info('Resetting password for user [%s]' % self.user)
+            return invalid('Cannot reset password for user [{0}], not found or access denied'.format(self.user))
+        self.api.log.info('Resetting password for user [{0}]'.format(self.user))
         
         # Generate a new random password
         new_pw = rstring()
@@ -147,31 +147,31 @@ class UserResetPassword:
             user_obj = DBUser.objects.get(username=self.user)
             user_obj.set_password(new_pw)
             user_obj.save()
-            self.api.log.info('Successfully reset password for user [%s]' % self.user)
+            self.api.log.info('Successfully reset password for user [{0}]'.format(self.user))
             
         # Critical error when resetting user password
         except Exception as e:
-            return invalid('Failed to reset password for user [%s]: %s' % (self.user, str(e)))
+            return invalid('Failed to reset password for user [{0}]: {1}'.format(self.user, str(e)))
         
         # Send the email
         try:
             
             # Email properties
-            email_sub  = 'CloudScape Password Reset: %s' % self.user
-            email_txt  = 'Your password has been reset. You may login with your new password "%s".' % new_pw
-            email_from = 'noreply@vpls.net'
+            email_sub  = 'Lense Password Reset: {0}'.format(self.user)
+            email_txt  = 'Your password has been reset. You may login with your new password "{0}".'.format(new_pw)
+            email_from = 'noreply@email.net'
             email_to   = [user_obj.email]
             
             # Send the email
             if self.api.email.send(email_sub, email_txt, email_from, email_to):
-                self.api.log.info('Sent email confirmation for password reset to user [%s]' % self.user)
+                self.api.log.info('Sent email confirmation for password reset to user [{0}]'.format(self.user))
             
             # Return the response
             return valid('Successfully reset user password')
         
         # Critical error when sending password reset notification
         except Exception as e:
-            return invalid(self.api.log.error('Failed to send password reset confirmation: %s' % str(e)))
+            return invalid(self.api.log.error('Failed to send password reset confirmation: {0}'.format(str(e))))
 
 class UserCreate:
     """
@@ -193,7 +193,7 @@ class UserCreate:
 
         # Make sure the user doesn't exist
         if DBUser.objects.filter(username=self.api.data['username']).count():
-            return invalid(self.api.log.error('The user account [%s] already exists' % self.api.data['username']))
+            return invalid(self.api.log.error('The user account [{0}] already exists'.format(self.api.data['username'])))
 
         # Password RegEx Tester:
         # - At least 8 characters
@@ -239,7 +239,7 @@ class UserCreate:
             # Check if specifying a manual user UUID
             if self.api.data.get('uuid', False):
                 if DBUser.objects.filter(uuid=self.api.data['uuid']).count():
-                    return invalid(self.api.log.error('Cannot create user with duplicate UUID <%s>' % self.api.data['uuid']))
+                    return invalid(self.api.log.error('Cannot create user with duplicate UUID <{0}>'.format(self.api.data['uuid'])))
                 
             # Create the user account
             new_user = DBUser.objects.create_user(
@@ -252,31 +252,31 @@ class UserCreate:
                 
             # Save the user account details
             new_user.save()
-            self.api.log.info('Created user account [%s]' % (self.api.data['username']))
+            self.api.log.info('Created user account [{0}]'.format((self.api.data['username'])))
             
             # Send the account creation email
             try:
                 
                 # Email properties
-                email_sub  = 'CloudScape New Account: %s' % new_user.username
-                email_txt  = 'Your account has been created. You may login with your password "%s".' % password
-                email_from = 'noreply@vpls.net'
+                email_sub  = 'Lense New Account: {0}'.format(new_user.username)
+                email_txt  = 'Your account has been created. You may login with your password "{0}".'.format(password)
+                email_from = 'noreply@email.net'
                 email_to   = [new_user.email]
                 
                 # Send the email
                 if self.api.email.send(email_sub, email_txt, email_from, email_to):
-                    self.api.log.info('Sent email confirmation for new account [%s] to [%s]' % (new_user.username, new_user.email))
+                    self.api.log.info('Sent email confirmation for new account [{0}] to [{1}]'.format(new_user.username, new_user.email))
                 
                     # Return valid
                     return valid('Successfully sent account creation confirmation')
             
             # Critical error when sending email confirmation, continue but log exception
             except Exception as e:
-                self.api.log.exception('Failed to send account creation confirmation: %s' % str(e))
+                self.api.log.exception('Failed to send account creation confirmation: {0}'.format(str(e)))
             
         # Something failed during creation
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to create user account [%s]: %s' % (self.api.data['username'], str(e))))
+            return invalid(self.api.log.exception('Failed to create user account [{0}]: {1}'.format(self.api.data['username'], str(e))))
         
         # Get the new user's API key
         api_key = DBUserAPIKeys.objects.filter(user=new_user.uuid).values()[0]['api_key']
@@ -323,7 +323,7 @@ class UserGet:
             
             # If the user does not exist or access is denied
             if not self.user in auth_users.ids:
-                return invalid('User [%s] does not exist or access denied' % self.user)
+                return invalid('User [{0}] does not exist or access denied'.format(self.user))
             
             # Return the user details
             return valid(auth_users.extract(self.user))

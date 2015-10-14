@@ -7,9 +7,9 @@ from uuid import uuid4
 from django.core.serializers.json import DjangoJSONEncoder
 
 # Lense Libraries
+from lense import MODULE_ROOT
 from lense.common.utils import valid, invalid, mod_has_class
 from lense.engine.api.auth.token import APIToken
-from lense.common.vars import T_ACL, L_BASE
 from lense.engine.api.app.gateway.models import DBGatewayACLKeys, DBGatewayACLAccessGlobal, \
                                                   DBGatewayACLAccessObject, DBGatewayUtilities, DBGatewayACLObjects
 
@@ -30,7 +30,7 @@ class GatewayUtilitiesDelete:
         
         # Make sure the utility exists
         if not DBGatewayUtilities.objects.filter(uuid=self.utility).count():
-            return invalid(self.api.log.error('Could not delete utility [%s], not found in database' % self.utility))
+            return invalid(self.api.log.error('Could not delete utility [{0}], not found in database'.format(self.utility)))
         
         # Get the utility details
         utility_row = DBGatewayUtilities.objects.filter(uuid=self.utility).values()[0]
@@ -43,7 +43,7 @@ class GatewayUtilitiesDelete:
         try:
             DBGatewayUtilities.objects.filter(uuid=self.utility).delete()
         except Exception as e:
-            return invalid(self.api.log.exeption('Failed to delete utility: %s' % str(e)))
+            return invalid(self.api.log.exeption('Failed to delete utility: {0}'.format(str(e))))
         
         # Construct and return the web data
         web_data = {
@@ -106,7 +106,7 @@ class GatewayUtilitiesCreate:
             
         # Failed to save utility
         except Exception as e:
-            return invalid('Failed to create utility: %s' % str(e))
+            return invalid('Failed to create utility: {0}'.format(str(e)))
 
 class GatewayUtilitiesSave:
     """
@@ -125,7 +125,7 @@ class GatewayUtilitiesSave:
 
         # Make sure the utility exists
         if not DBGatewayUtilities.objects.filter(uuid=self.utility).count():
-            return invalid(self.api.log.error('Could not save utility [%s], not found in database' % self.utility))
+            return invalid(self.api.log.error('Could not save utility [{0}], not found in database'.format(self.utility)))
 
         # Validate the utility attributes
         #util_status = self.api.util.GatewayUtilitiesValidate.launch()
@@ -163,7 +163,7 @@ class GatewayUtilitiesSave:
             
         # Critical error when updating utility
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to update utility: %s' % str(e)))
+            return invalid(self.api.log.exception('Failed to update utility: {0}'.format(str(e))))
 
         # Successfully updated utility
         return valid('Successfully updated utility.')
@@ -213,11 +213,11 @@ class GatewayUtilitiesValidate:
     
         # Make sure the path string is valid
         if not re.match(r'^[a-z0-9][a-z0-9\/]*[a-z0-9]$', default['path']):
-            return invalid('Failed to validate utility [%s], invalid [path] value: %s' % (self.utility, default['path']))
+            return invalid('Failed to validate utility [{0}], invalid [path] value: {1}'.format(self.utility, default['path']))
     
         # Make sure the method is valid
         if not default['method'] in ['GET', 'POST', 'PUT', 'DELETE']:
-            return invalid('Failed to validate utility [%s], invalid [method] value: %s' % (self.utility, default['method']))
+            return invalid('Failed to validate utility [{0}], invalid [method] value: {1}'.format(self.utility, default['method']))
     
         # Make sure the object type is supported
         obj_supported = False if default['object'] else True
@@ -226,18 +226,18 @@ class GatewayUtilitiesValidate:
                 obj_supported = True
                 break
         if not obj_supported:
-            return invalid('Failed to validate utility, using unsupported utility object type [%s]' % object)
+            return invalid('Failed to validate utility, using unsupported utility object type [{0}]'.format(object))
     
         # Make sure the request map is valid JSON
         try:
             tmp = json.loads(rmap)
         except Exception as e:
-            return invalid('Failed to validate request map JSON: %s' % str(e))
+            return invalid('Failed to validate request map JSON: {0}'.format(str(e)))
     
         # Validate the module
         mod_path = mod.replace('.', '/')
-        if not os.path.isfile('%s/python/%s.py' % (L_BASE, mod_path)):
-            return invalid('Failed to validate utility [%s], module [%s] not found' % (self.utility, mod))
+        if not os.path.isfile('{0}/{1}.py'.format(MODULE_ROOT, mod_path)):
+            return invalid('Failed to validate utility [{0}], module [{1}] not found'.format(self.utility, mod))
     
         # Validate the class
         mod_status = mod_has_class(mod, cls)
@@ -247,7 +247,7 @@ class GatewayUtilitiesValidate:
         # Validate external utilities
         for util in utils:
             if not util in util_ext:
-                return invalid('Failed to validate utility [%s], could not locate external utility class [%s]' % (self.utility, util))
+                return invalid('Failed to validate utility [{0}], could not locate external utility class [{1}]'.format(self.utility, util))
         
         # Utility validated
         return valid()
@@ -259,7 +259,7 @@ class GatewayUtilitiesValidate:
         
         # Make sure the utility exists
         if not DBGatewayUtilities.objects.filter(uuid=self.utility).count():
-            return invalid(self.api.log.error('Could not validate utility [%s], not found in database' % self.utility))
+            return invalid(self.api.log.error('Could not validate utility [{0}], not found in database'.format(self.utility)))
 
         # Validate the utility attributes
         util_status = self._validate()
@@ -286,17 +286,17 @@ class GatewayUtilitiesClose:
     
         # Make sure the utility exists
         if not DBGatewayUtilities.objects.filter(uuid=self.utility).count():
-            return invalid(self.api.log.error('Could not check in utility [%s], not found in database' % self.utility))
+            return invalid(self.api.log.error('Could not check in utility [{0}], not found in database'.format(self.utility)))
         
         # Get the utility details row
         util_row = DBGatewayUtilities.objects.filter(uuid=self.utility).values()[0]
         
         # Check if the utility is already checked out
         if util_row['locked'] == False:
-            return invalid(self.api.log.error('Could not check in utility [%s], already checked in' % self.utility))
+            return invalid(self.api.log.error('Could not check in utility [{0}], already checked in'.format(self.utility)))
         
         # Unlock the utility
-        self.api.log.info('Checked in utility [%s] by user [%s]' % (self.utility, self.api.user))
+        self.api.log.info('Checked in utility [{0}] by user [{1}]'.format(self.utility, self.api.user))
         try:
             DBGatewayUtilities.objects.filter(uuid=self.utility).update(
                 locked    = False,
@@ -306,7 +306,7 @@ class GatewayUtilitiesClose:
             
         # Failed to check out the utility
         except Exception as e:
-            return invalid(self.api.log.error('Failed to check in utility with error: %s' % str(e)))
+            return invalid(self.api.log.error('Failed to check in utility with error: {0}'.format(str(e))))
 
 class GatewayUtilitiesOpen:
     """
@@ -322,31 +322,31 @@ class GatewayUtilitiesOpen:
         """
         Worker method to open the utility for editing.
         """
-        self.api.log.info('Preparing to checkout utility [%s] for editing' % self.utility)
+        self.api.log.info('Preparing to checkout utility [{0}] for editing'.format(self.utility))
     
         # Make sure the utility exists
         if not DBGatewayUtilities.objects.filter(uuid=self.utility).count():
-            return invalid(self.api.log.error('Could not open utility [%s] for editing, not found in database' % self.utility))
+            return invalid(self.api.log.error('Could not open utility [{0}] for editing, not found in database'.format(self.utility)))
         
         # Get the utility details row
         util_row = DBGatewayUtilities.objects.filter(uuid=self.utility).values()[0]
         
         # Check if the utility is locked
         if util_row['locked'] == True:
-            self.api.log.info('Utility [%s] already checked out by user [%s]' % (self.utility, util_row['locked_by']))
+            self.api.log.info('Utility [{0}] already checked out by user [{1}]'.format(self.utility, util_row['locked_by']))
             
             # If the utility is checked out by the current user
             if util_row['locked_by'] == self.api.user:
-                self.api.log.info('Utility checkout request OK, requestor [%s] is the same as the locking user [%s]' % (self.api.user, util_row['locked_by']))
+                self.api.log.info('Utility checkout request OK, requestor [{0}] is the same as the locking user [{1}]'.format(self.api.user, util_row['locked_by']))
                 return valid('Utility already checked out by the current user')
             else:
-                return invalid(self.api.log.error('Could not open utility [%s] for editing, already checked out by %s' % (self.utility, util_row['locked_by'])))
+                return invalid(self.api.log.error('Could not open utility [{0}] for editing, already checked out by {1}'.format(self.utility, util_row['locked_by'])))
     
         # Set the locking user
         locked_by = self.api.user
         
         # Lock the utility for editing
-        self.api.log.info('Checkout out utility [%s] for editing by user [%s]' % (self.utility, locked_by))
+        self.api.log.info('Checkout out utility [{0}] for editing by user [{1}]'.format(self.utility, locked_by))
         try:
             DBGatewayUtilities.objects.filter(uuid=self.utility).update(
                 locked    = True,
@@ -356,7 +356,7 @@ class GatewayUtilitiesOpen:
             
         # Failed to check out the utility
         except Exception as e:
-            return invalid(self.api.log.error('Failed to check out utility for editing with error: %s' % str(e)))
+            return invalid(self.api.log.error('Failed to check out utility for editing with error: {0}'.format(str(e))))
 
 class GatewayUtilitiesGet:
     """
@@ -376,14 +376,14 @@ class GatewayUtilitiesGet:
                 
                 # If the utility doesn't exist
                 if not DBGatewayUtilities.objects.filter(uuid=self.api.data['uuid']).count():
-                    return invalid('Utility [%s] does not exist' % self.api.data['uuid'])
+                    return invalid('Utility [{0}] does not exist'.format(self.api.data['uuid']))
                 return valid(json.dumps(DBGatewayUtilities.objects.filter(uuid=self.api.data['uuid']).values()[0]))
                 
             # Return all utilities
             else:
                 return valid(json.dumps(list(DBGatewayUtilities.objects.all().values())))
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to retrieve utilities listing: %s' % str(e)))
+            return invalid(self.api.log.exception('Failed to retrieve utilities listing: {0}'.format(str(e))))
 
 class GatewayACLObjectsDelete:
     """
@@ -402,15 +402,14 @@ class GatewayACLObjectsDelete:
         
         # If the ACL object doesn't exist
         if not DBGatewayACLObjects.objects.filter(type=self.type).count():
-            return invalid('Cannot delete ACL object [%s], not found in database' % self.type)
-        self.api.log.info('BLARGLE')
+            return invalid('Cannot delete ACL object [{0}], not found in database'.format(self.type))
         
         # Get the ACL object definition
         acl_object = DBGatewayACLObjects.objects.filter(type=self.type).values(detailed=True)[0]
         
         # If the ACL object has any assigned object
         if acl_object['objects']:
-            return invalid('Cannot delete ACL object [%s] definition, contains [%s] child objects' % (self.type, str(len(acl_object['objects']))))
+            return invalid('Cannot delete ACL object [{0}] definition, contains [{1}] child objects'.format(self.type, str(len(acl_object['objects']))))
 
         # Delete the ACL object definition
         try:
@@ -418,7 +417,7 @@ class GatewayACLObjectsDelete:
             
         # Critical error when deleting ACL object
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to delete ACL object [%s] definition: %s' % (self.type, str(e))))
+            return invalid(self.api.log.exception('Failed to delete ACL object [{0}] definition: {1}'.format(self.type, str(e))))
 
         # Return the response
         return valid('Successfully deleted ACL object definition', {
@@ -434,9 +433,6 @@ class GatewayACLObjectsCreate:
         
         # API object attributes
         self.attr = self._set_attr()
-        
-        self.api.log.info('SET_ATTR: %s' % json.dumps(self.attr, indent=4))
-        self.api.log.info('API_DATA: %s' % json.dumps(self.api.data, indent=4))
         
     def _set_attr(self):
         """
@@ -466,7 +462,7 @@ class GatewayACLObjectsCreate:
         
         # Make sure the type definition is not already used
         if DBGatewayACLObjects.objects.filter(type=self.attr['type']).count():
-            return invalid('Failed to create ACL object type [%s], already defined' % self.attr['type'])
+            return invalid('Failed to create ACL object type [{0}], already defined'.format(self.attr['type']))
         
         # Check the ACL and object module/class definitions
         for key,status in {
@@ -482,14 +478,14 @@ class GatewayACLObjectsCreate:
         # If a default ACL UUID is supplied
         if ('def_acl' in self.api.data):
             if not DBGatewayACLKeys.objects.filter(uuid=self.attr['def_acl']).count():
-                return invalid('Failed to create ACL object type [%s], default ACL [%s] not found' % (self.attr['type'], self.attr['def_acl']))
+                return invalid('Failed to create ACL object type [{0}], default ACL [{1}] not found'.format(self.attr['type'], self.attr['def_acl']))
         
             # Get the default ACL object
             self.attr['def_acl'] = DBGatewayACLKeys.objects.get(uuid=self.api.data['def_acl'])
             
             # Make sure the ACL has object type authentication enabled
             if not self.attr['def_acl'].type_object:
-                return invalid('Failed to create ACL object type [%s], default ACL [%s] must have object authentication enabled' % (self.attr['type'], self.attr['def_acl']['uuid']))
+                return invalid('Failed to create ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.attr['type'], self.attr['def_acl']['uuid']))
         
         # Create the ACL object definition
         try:
@@ -497,7 +493,7 @@ class GatewayACLObjectsCreate:
             
         # Critical error when saving ACL object definition
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to create ACL object type [%s]: %s' % (self.attr['type'], str(e))))
+            return invalid(self.api.log.exception('Failed to create ACL object type [{0}]: {1}'.format(self.attr['type'], str(e))))
         
         # Return the response
         return valid('Successfully created ACL object definition', {
@@ -523,7 +519,7 @@ class GatewayACLObjectsUpdate:
         
         # Make sure the object definition exists
         if not DBGatewayACLObjects.objects.filter(type=self.type).count():
-            return invalid('Failed to update ACL object, type definition [%s] not found' % self.type)
+            return invalid('Failed to update ACL object, type definition [{0}] not found'.format(self.type))
         
         # Get the existing ACL object definition
         acl_obj = DBGatewayACLObjects.objects.filter(type=self.type).values()[0]
@@ -552,14 +548,14 @@ class GatewayACLObjectsUpdate:
             
             # Make sure the default ACL exists
             if not DBGatewayACLKeys.objects.filter(uuid=self.api.data['def_acl']).count():
-                return invalid('Failed to update ACL object type [%s], default ACL [%s] not found' % (self.type, self.api.data['def_acl']))
+                return invalid('Failed to update ACL object type [{0}], default ACL [{1}] not found'.format(self.type, self.api.data['def_acl']))
         
             # Get the default ACL object
             def_acl = DBGatewayACLKeys.objects.get(uuid=self.api.data['def_acl'])
             
             # Make sure the ACL has object type authentication enabled
             if not def_acl.type_object:
-                return invalid('Failed to update ACL object type [%s], default ACL [%s] must have object authentication enabled' % (self.type, def_acl.uuid))
+                return invalid('Failed to update ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.type, def_acl.uuid))
         
             # Clear the UUID string from the API data
             del self.api.data['def_acl']
@@ -578,7 +574,7 @@ class GatewayACLObjectsUpdate:
         
         # Critical error when updating ACL object definition
         except Exception as e:
-            return invalid('Failed to update ACL object: %s' % str(e))
+            return invalid('Failed to update ACL object: {0}'.format(str(e)))
          
         # Successfully updated object
         return valid('Successfully updated ACL object')
@@ -608,7 +604,7 @@ class GatewayACLObjectsGet:
             
             # Make sure the object type exists
             if not object_details:
-                return invalid('Could not locate ACL object of type [%s] in the database' % self.type)
+                return invalid('Could not locate ACL object of type [{0}] in the database'.format(self.type))
             
             # Return the ACL object
             return valid(object_details[0])
@@ -636,7 +632,7 @@ class GatewayACLUpdate:
         
         # Make sure the ACL exists
         if not DBGatewayACLKeys.objects.filter(uuid=self.acl).count():
-            return invalid('Failed to update ACL [%s], not found in database' % self.acl)
+            return invalid('Failed to update ACL [{0}], not found in database'.format(self.acl))
         
         # Get the ACL details
         acl_row  = DBGatewayACLKeys.objects.filter(uuid=self.acl).values()[0]
@@ -652,9 +648,9 @@ class GatewayACLUpdate:
         # Update ACL details
         try:
             DBGatewayACLKeys.objects.filter(uuid=self.acl).update(**params)
-            self.api.log.info('Updated properties for ACL [%s]' % self.acl)
+            self.api.log.info('Updated properties for ACL [{0}]'.format(self.acl))
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to update details for ACL [%s]: %s' % (self.acl, str(e))))
+            return invalid(self.api.log.exception('Failed to update details for ACL [{0}]: {1}'.format(self.acl, str(e))))
         
         # If updating ACL utilities
         if 'utilities' in self.api.data:
@@ -671,14 +667,14 @@ class GatewayACLUpdate:
                         if (obj_last == None) or (obj_last == util['object']):
                             obj_last = util['object']
                         else:
-                            return invalid('Object type mismatch <%s -> %s>, ACLs only support one object type per definition.' % (obj_last, util['object']))
+                            return invalid('Object type mismatch <{0} -> {1}>, ACLs only support one object type per definition.'.format(obj_last, util['object']))
             
             # Get the current ACL object
             acl_obj = DBGatewayACLKeys.objects.get(uuid=self.acl)
             
             # Update ACL utilities
             for acl_type, acl_util in utilities.iteritems():
-                self.api.log.info('Updating access type [%s] for ACL [%s]' % (acl_type, self.acl))
+                self.api.log.info('Updating access type [{0}] for ACL [{1}]'.format(acl_type, self.acl))
                 try:
                     
                     # Global
@@ -708,11 +704,11 @@ class GatewayACLUpdate:
                             ).save()
                     
                     # All utilities updated
-                    self.api.log.info('Updated all utilities for ACL [%s]' % self.acl)
+                    self.api.log.info('Updated all utilities for ACL [{0}]'.format(self.acl))
                     
                 # Failed to update utilities
                 except Exception as e:
-                    return invalid(self.api.log.exception('Failed to update [%s] utilities for ACL [%s]: %s' % (acl_type, self.acl, str(e))))
+                    return invalid(self.api.log.exception('Failed to update [{0}] utilities for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
         
         # ACL updated
         return valid('Succesfully updated ACL')
@@ -734,12 +730,12 @@ class GatewayACLDelete:
         
         # Make sure the ACL exists
         if not DBGatewayACLKeys.objects.filter(uuid=self.acl).count():
-            return invalid('Failed to delete ACL [%s], not found in database' % self.acl)
+            return invalid('Failed to delete ACL [{0}], not found in database'.format(self.acl))
         
         # Delete the ACL definition
         try:
             DBGatewayACLKeys.objects.filter(uuid=self.acl).delete()
-            self.api.log.info('Deleted ACL definition [%s]' % self.acl)
+            self.api.log.info('Deleted ACL definition [{0}]'.format(self.acl))
             
             # ACL deleted
             return valid('Successfully deleted ACL', {
@@ -748,7 +744,7 @@ class GatewayACLDelete:
             
         # Failed to delete ACL
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to delete ACL [%s]: %s' % (self.acl, str(e))))
+            return invalid(self.api.log.exception('Failed to delete ACL [{0}]: {1}'.format(self.acl, str(e))))
         
 class GatewayACLCreate:
     """
@@ -779,13 +775,13 @@ class GatewayACLCreate:
         
         # Make sure the ACL doesn't exist
         if DBGatewayACLKeys.objects.filter(name=params['name']).count():
-            return invalid('ACL [%s] is already defined' % acl_name)
+            return invalid('ACL [{0}] is already defined'.format(acl_name))
 
         # Create the ACL key entry
         try:
             DBGatewayACLKeys(**params).save()
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to create ACL definition: %s' % str(e)))
+            return invalid(self.api.log.exception('Failed to create ACL definition: {0}'.format(str(e))))
             
         # Create ACL definition
         return valid('Create new ACL definition', {
@@ -820,7 +816,7 @@ class GatewayACLGet:
                 
                 # If the ACL definition doesn't exist
                 if not acl_definition:
-                    return invalid('Could not locate ACL [%s] in the database' % self.acl)
+                    return invalid('Could not locate ACL [{0}] in the database'.format(self.acl))
                 
                 # Return the ACL definition
                 return valid(json.dumps(acl_definition[0]))
@@ -831,7 +827,7 @@ class GatewayACLGet:
             
         # Error during ACL construction
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to retrieve ACL definition(s): %s' % str(e)))
+            return invalid(self.api.log.exception('Failed to retrieve ACL definition(s): {0}'.format(str(e))))
 
 class GatewayTokenGet:
     """
@@ -851,7 +847,7 @@ class GatewayTokenGet:
         
         # Handle token retrieval errors
         if api_token == False:
-            return invalid(self.api.log.error('Error retreiving API token for user [%s]' % self.api.request.user))
+            return invalid(self.api.log.error('Error retreiving API token for user [{0}]'.format(self.api.request.user)))
         else:
             
             # Return the API token

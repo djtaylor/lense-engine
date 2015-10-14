@@ -24,8 +24,8 @@ class APIEmail(object):
     Wrapper class for handling emails.
     """
     def __init__(self):
-        self.conf = config.parse('SERVER')
-        self.log  = logger.create(__name__, self.conf.server.log)
+        self.conf = config.parse('ENGINE')
+        self.log  = logger.create(__name__, self.conf.engine.log)
     
     def send(self, subject, body, sender, recipient):
         """
@@ -94,9 +94,9 @@ class APIBare(object):
         self.email   = APIEmail()
         
         # Configuration / logger
-        self.conf    = config.parse('SERVER')
+        self.conf    = config.parse('ENGINE')
         self.log     = APILogger(self)
-        self.log_int = logger.create(path, self.conf.server.log)
+        self.log_int = logger.create(path, self.conf.engine.log)
         
     def _get_request(self):
         """
@@ -148,8 +148,8 @@ class APIBase(object):
         self.email        = APIEmail()
         
         # Configuration / internal logger
-        self.conf         = config.parse('SERVER')
-        self.log_int      = logger.create('{}:{}'.format(self.path, self.method), self.conf.server.log)
+        self.conf         = config.parse('ENGINE')
+        self.log_int      = logger.create('{}:{}'.format(self.path, self.method), self.conf.engine.log)
 
         # External utilities / utilities object / cache manager / objects manager / ACL gateway
         self.utils        = utils

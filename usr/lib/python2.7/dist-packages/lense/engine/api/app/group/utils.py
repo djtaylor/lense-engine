@@ -37,11 +37,11 @@ class GroupMemberRemove:
 
         # If the group does not exist or access denied
         if not self.group in auth_groups.ids:
-            return invalid('Failed to remove user <%s> from group <%s>, group not found or access denied' % (self.user, self.group))
+            return invalid('Failed to remove user <{0}> from group <{1}>, group not found or access denied'.format(self.user, self.group))
 
         # If the user does not exist or access denied
         if not self.user in auth_users.ids:
-            return invalid('Failed to remove user <%s> from group <%s>, user not found or access denied' % (self.user, self.group))
+            return invalid('Failed to remove user <{0}> from group <{1}>, user not found or access denied'.format(self.user, self.group))
         
         # If trying to remove the default administrator account from the default administrator group
         if (self.user == U_ADMIN) and (self.group == G_ADMIN):
@@ -52,7 +52,7 @@ class GroupMemberRemove:
         
         # Check if the user is already a member of the group
         if not self.user in group.members_list():
-            return invalid('User <%s> is not a member of group <%s>' % (self.user, self.group))
+            return invalid('User <{0}> is not a member of group <{1}>'.format(self.user, self.group))
 
         # Remove the user from the group
         group.members_unset(DBUser.objects.get(uuid=self.user))
@@ -97,18 +97,18 @@ class GroupMemberAdd:
 
         # If the group does not exist or access denied
         if not self.group in auth_groups.ids:
-            return invalid('Failed to add user <%s> to group <%s>, group not found or access denied' % (self.user, self.group))
+            return invalid('Failed to add user <{0}> to group <{1}>, group not found or access denied'.format(self.user, self.group))
 
         # If the user does not exist or access denied
         if not self.user in auth_users.ids:
-            return invalid('Failed to add user <%s> to group <%s>, user not found or access denied' % (self.user, self.group))
+            return invalid('Failed to add user <{0}> to group <{1}>, user not found or access denied'.format(self.user, self.group))
         
         # Get the group object
         group = DBGroupDetails.objects.get(uuid=self.group)
         
         # Check if the user is already a member of the group
         if self.user in group.members_list():
-            return invalid('User <%s> is already a member of group <%s>' % (self.user, self.group))
+            return invalid('User <{0}> is already a member of group <{1}>'.format(self.user, self.group))
         
         # Get the user object
         user = DBUser.objects.get(uuid=self.user)
@@ -119,7 +119,7 @@ class GroupMemberAdd:
             
         # Failed to add user to group
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to add user to group: %s' % str(e)))
+            return invalid(self.api.log.exception('Failed to add user to group: {0}'.format(str(e))))
         
         # Update the cached group data
         self.api.cache.save_object('group', self.group)
@@ -159,15 +159,15 @@ class GroupDelete:
 
         # If the group does not exist or access denied
         if not self.group in auth_groups.ids:
-            return invalid('Failed to delete group <%s>, not found in database or access denied' % self.group)
+            return invalid('Failed to delete group <{0}>, not found in database or access denied'.format(self.group))
 
         # If the group is protected
         if auth_groups.extract(self.group)['protected']:
-            return invalid('Failed to delete group <%s>, group is protected')
+            return invalid('Failed to delete group <{0}>, group is protected'.format(self.group))
 
         # If the group has any members
         if DBGroupMembers.objects.filter(group=self.group).count():
-            return invalid('Failed to delete group <%s>, must remove all group members first' % self.group)
+            return invalid('Failed to delete group <{0}>, must remove all group members first'.format(self.group))
 
         # Delete the group
         DBGroupDetails.objects.filter(uuid=self.group).delete()
@@ -201,7 +201,7 @@ class GroupUpdate:
             try:
                 self.group_obj.global_permissions_set(self.api.data['permissions']['global'])
             except Exception as e:
-                return invalid(self.api.log.exception('Failed to update global permissions: %s' % str(e)))
+                return invalid(self.api.log.exception('Failed to update global permissions: {0}'.format(str(e))))
         return valid()
     
     def _update_object_permissions(self):
@@ -212,7 +212,7 @@ class GroupUpdate:
             try:
                 self.group_obj.object_permissions_set(self.api.data['permissions']['object'])
             except Exception as e:
-                return invalid(self.api.log.exception('Failed to update object permissions: %s' % str(e)))
+                return invalid(self.api.log.exception('Failed to update object permissions: {0}'.format(str(e))))
         return valid()
     
     def _update_profile(self):
@@ -244,7 +244,7 @@ class GroupUpdate:
                 # Changing the group name
                 if 'name' in p:
                     if not (self.group_obj.name == p['name']):
-                        self.api.log.info('Renaming group <%s> to <%s>' % (self.group_obj.name, p['name']))
+                        self.api.log.info('Renaming group <{0}> to <{1}>'.format(self.group_obj.name, p['name']))
                         
                         # Toggle the name change flag and rename the group
                         self.name_change = True
@@ -255,7 +255,7 @@ class GroupUpdate:
                         # Set the new group name to be returned
                         self.name_return = p['name']
             except Exception as e:
-                return invalid(self.api.log.exception('Failed to update group profile: %s' % str(e)))
+                return invalid(self.api.log.exception('Failed to update group profile: {0}'.format(str(e))))
         else:
             self.name_return = self.group_obj.name
         return valid()
@@ -270,7 +270,7 @@ class GroupUpdate:
 
         # If the group does not exist or access denied
         if not self.group in auth_groups.ids:
-            return invalid('Failed to update group <%s>, not found in database or access denied' % self.group)
+            return invalid('Failed to update group <{0}>, not found in database or access denied'.format(self.group))
         
         # Load the group object
         self.group_obj = DBGroupDetails.objects.get(uuid=self.group)
@@ -321,7 +321,7 @@ class GroupCreate:
             
         # Make sure the group doesn't exist
         if DBGroupDetails.objects.filter(name=self.api.data['name']).count():
-            return invalid(self.api.log.error('Group name <%s> already exists' % self.api.data['name']))
+            return invalid(self.api.log.error('Group name <{0}> already exists'.format(self.api.data['name'])))
         
         # Generate a unique ID for the group
         group_uuid = str(uuid4())
@@ -329,7 +329,7 @@ class GroupCreate:
         # If manually specifying a UUID
         if self.api.data.get('uuid', False):
             if DBGroupDetails.objects.filter(uuid=self.api.data['uuid']).count():
-                return invalid(self.api.log.error('Cannot create group with duplicate UUID <%s>' % self.api.data['uuid']))
+                return invalid(self.api.log.error('Cannot create group with duplicate UUID <{0}>'.format(self.api.data['uuid'])))
         
             # Set the manual UUID
             group_uuid = self.api.data['uuid']
@@ -345,7 +345,7 @@ class GroupCreate:
             
         # Failed to create group
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to create group: %s' % str(e)))
+            return invalid(self.api.log.exception('Failed to create group: {0}'.format(str(e))))
         
         # Return the response
         return valid('Successfully created group', {
@@ -385,7 +385,7 @@ class GroupGet:
             
             # If the group does not exist or access denied
             if not self.group in auth_groups.ids:
-                return invalid('Group <%s> not found or access denied' % self.group)
+                return invalid('Group <{0}> not found or access denied'.format(self.group))
             
             # Return the group details
             return valid(auth_groups.extract(self.group))

@@ -1,6 +1,8 @@
 usr/bin/lense-socket /usr/bin/
 etc/init.d/lense-socket etc/init.d/
-etc/lense/engine etc/lense/
+etc/lense/engine.conf etc/lense/
+etc/lense/engine.default.conf etc/lense/
+etc/apache2/sites-available/lense-engine.conf etc/apache2/sites-available/
 etc/lense/dbkey/README.md etc/lense/dbkey
 usr/lib/python2.7/dist-packages/lense/engine usr/lib/python2.7/dist-packages/lense/
 usr/share/lense/templates/engine usr/share/lense/templates/
