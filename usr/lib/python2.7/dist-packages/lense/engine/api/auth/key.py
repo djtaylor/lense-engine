@@ -52,7 +52,7 @@ class APIKey(object):
             
         # Invalid API key
         if api_key['content'] != request.key:
-            return invalid('Client [{}] has submitted an invalid API key'.format(request.user))
+            return invalid('Client [{0}] has submitted an invalid API key'.format(request.user))
         
         # API key looks OK
         return valid(request)

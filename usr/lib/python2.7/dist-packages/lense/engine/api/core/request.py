@@ -165,6 +165,14 @@ class RequestManager(object):
         # API base object
         self.api_base    = None
     
+    def _is_token_request(self):
+        """
+        Convenience method for checking if this is a token request.
+        """
+        if self.request.path == PATH.GET_TOKEN:
+            return True
+        return False
+    
     def _authenticate(self):
         """
         Authenticate the API request.
@@ -174,7 +182,7 @@ class RequestManager(object):
         LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user, repr(self.request.group)))
         
         # Authenticate key for token requests
-        if self.request.path == PATH.GET_TOKEN:
+        if self._is_token_request():
             auth_status = APIKey().validate(self.request)
             
             # API key authentication failed
@@ -258,12 +266,14 @@ class RequestManager(object):
         except Exception as e:
             return JSONException().response()
         
-        # Check the request against ACLs
-        acl_gateway = ACLGateway(self.request)
+        # Check the request against ACLs unless this is a token request
+        acl_gateway = None
+        if not self._is_token_request():
+            acl_gateway = ACLGateway(self.request)
         
-        # If the user is not authorized for this endpoint/object combination
-        if not acl_gateway.authorized:
-            return JSONError(error=acl_gateway.auth_error, status=401).response()
+            # If the user is not authorized for this endpoint/object combination
+            if not acl_gateway.authorized:
+                return JSONError(error=acl_gateway.auth_error, status=401).response()
         
         # Set up the API base
         try:
@@ -272,7 +282,7 @@ class RequestManager(object):
             api_obj = APIBase(
                 request  = self.request, 
                 utils    = self.api_utils,
-                acl      = acl_gateway
+                acl      = acl_gateway 
             ).construct()
             
             # Make sure the construct ran successfully
