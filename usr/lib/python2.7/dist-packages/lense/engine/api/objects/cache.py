@@ -20,7 +20,7 @@ class CacheManager(object):
     def __init__(self):
         
         # Configuration / logger objects
-        self.conf = config.parse('SERVER')
+        self.conf = config.parse('ENGINE')
         self.log  = logger.create(__name__, self.conf.utils.log)
         
     def get_object(self, obj_type, obj_id=None, decode=True, filters={}):

@@ -21,8 +21,8 @@ from lense.engine.api.app.user.models import DBUser
 from lense.engine.api.app.gateway.models import DBGatewayUtilities
 
 # Configuration / Logger
-CONF = config.parse('SERVER')
-LOG  = logger.create(__name__, CONF.server.log)
+CONF = config.parse('ENGINE')
+LOG  = logger.create(__name__, CONF.engine.log)
 
 def dispatch(request):
     """

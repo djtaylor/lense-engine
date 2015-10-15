@@ -9,7 +9,6 @@ from lense.common import config
 from lense.common import logger
 from lense.common.http import HEADER, PATH
 from lense.common.utils import invalid, valid
-from lense.common.vars import T_USER, T_HOST
 from lense.common.collection import Collection
 from lense.engine.api.objects.manager import ObjectsManager
 from lense.engine.api.app.user.models import DBUser
@@ -19,8 +18,8 @@ from lense.engine.api.app.gateway.models import DBGatewayACLAccessGlobal, DBGate
                                                   DBGatewayACLObjects
               
 # Configuration / Logger / Objects Manager
-CONF    = config.parse('SERVER')
-LOG     = logger.create('lense.engine.api.auth.acl', CONF.server.log)
+CONF    = config.parse('ENGINE')
+LOG     = logger.create('lense.engine.api.auth.acl', CONF.engine.log)
 OBJECTS = ObjectsManager()
          
 def get_obj_def(obj_type):
@@ -173,7 +172,7 @@ class ACLUser(object):
        
         # Username / groups / ACLs
         self.name   = user
-        self.type   = T_USER
+        self.type   = 'user'
         self.groups = self._get_groups() 
         self.acls   = self._get_acls()
    

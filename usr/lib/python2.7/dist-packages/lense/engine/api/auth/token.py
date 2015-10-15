@@ -16,8 +16,8 @@ class APIToken(object):
     def __init__(self):
         
         # Configuration / logger objects
-        self.conf = config.parse('SERVER')
-        self.log  = logger.create(__name__, self.conf.server.log)
+        self.conf = config.parse('ENGINE')
+        self.log  = logger.create(__name__, self.conf.engine.log)
     
     def _get_api_token(self, id):
         """

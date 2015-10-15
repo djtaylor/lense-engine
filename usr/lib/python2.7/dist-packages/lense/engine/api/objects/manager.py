@@ -19,7 +19,7 @@ class ObjectsManager(object):
     def __init__(self):
         
         # Configuration / logger objects
-        self.conf  = config.parse('SERVER')
+        self.conf  = config.parse('ENGINE')
         self.log   = logger.create(__name__, self.conf.utils.log)
         
         # Cache manager
@@ -113,7 +113,7 @@ class ObjectsManager(object):
             self.log.info('Retrieving database object: type={}, id={}, cache={}'.format(obj_type, repr(obj_id), repr(cache)))
             
             # If retrieving from the database cache table and caching not explicitly disabled
-            if cache and not (self.conf.server.caching == False):
+            if cache and not (self.conf.engine.caching == False):
             
                 # Look for object details in the cache
                 cached_obj = self.cache.get_object(obj_type, obj_id, filters=filters)
