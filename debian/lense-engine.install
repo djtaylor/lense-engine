@@ -1,5 +1,3 @@
-usr/bin/lense-socket /usr/bin/
-etc/init.d/lense-socket etc/init.d/
 etc/lense/engine.conf etc/lense/
 etc/lense/engine.default.conf etc/lense/
 etc/apache2/sites-available/lense-engine.conf etc/apache2/sites-available/
