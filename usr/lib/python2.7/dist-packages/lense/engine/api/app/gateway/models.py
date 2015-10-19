@@ -32,6 +32,7 @@ class DBGatewayUtilities(models.Model):
     Main database model for storing API utility details.
     """
     uuid       = models.CharField(max_length=36, unique=True)
+    name       = models.CharField(max_length=128, unique=True)
     path       = models.CharField(max_length=128)
     desc       = models.CharField(max_length=256)
     method     = models.CharField(max_length=6)
@@ -99,8 +100,8 @@ class DBGatewayACLObjectsQuerySet(models.query.QuerySet):
             if acl_object['type'] == 'utility':
                 acl_object['objects'].append({
                     'id':    obj_details[obj_key],
-                    'name':  obj_details['name'],
-                    'label': obj_details['name']
+                    'path':  obj_details['path'],
+                    'label': '{0}:{1}'.format(obj_details['method'], obj_details['path'])
                 })
         
         # Return the detailed ACL object
