@@ -155,9 +155,10 @@ class ACLUtility(object):
         self.method = method
         self.model  = DBGatewayUtilities.objects.get(path=self.path, method=self.method)
         self.uuid   = self.model.uuid
+        self.name   = self.model.name
         
         # Log utility retrieval
-        LOG.info('Constructed API utility: path={}, method={}, obj={}, uuid={}'.format(self.path, self.method, str(self.model), self.uuid))
+        LOG.info('Constructed API utility: name={0}, path={1}, method={2}, obj={3}, uuid={4}'.format(self.name, self.path, self.method, str(self.model), self.uuid))
         
     def get(self): 
         return self
@@ -261,10 +262,10 @@ class ACLGateway(object):
             
             # If the ACL supports the target utility
             if self.utility.uuid in global_access:
-                return valid(LOG.info('Global access granted for user [{}] to utility [{}]'.format(self.user.name, self.utility.path)))
+                return valid(LOG.info('Global access granted for user [{}] to utility [{}]'.format(self.user.name, self.utility.name)))
         
         # Global access denied
-        return invalid('Global access denied for user [{}] to utility [{}]'.format(self.user.name, self.utility.path))
+        return invalid('Global access denied for user [{}] to utility [{}]'.format(self.user.name, self.utility.name))
     
     def _check_object_access(self, object_acls, group):
         """
@@ -351,7 +352,7 @@ class ACLGateway(object):
         
         # Access denied
         else:
-            err_msg = 'Access denied to utility [{}]{}'.format(self.utility.path, obj_error)
+            err_msg = 'Access denied to utility [{}]{}'.format(self.utility.name, obj_error)
             
             # Log the error message
             LOG.error(err_msg)
@@ -370,7 +371,7 @@ class ACLGateway(object):
             return self._set_authorization(True)
             
         # Log the initial ACL authorization request
-        LOG.info('Running ACL gateway validation: path={}, method={}, user={}'.format(self.utility.path, self.utility.method, self.user.name))
+        LOG.info('Running ACL gateway validation: name={0}, path={1}, method={2}, user={3}'.format(self.utility.name, self.utility.path, self.utility.method, self.user.name))
         
         # If the user is not a member of any groups (and not a host account type)
         if not self.user.groups and self.user.type == T_USER:
@@ -381,7 +382,7 @@ class ACLGateway(object):
             access_status = self._check_access()
             if not access_status['valid']:
                 return self._set_authorization(False, access_status['content'])
-            LOG.info('ACL gateway authorization success: path={}, method={}, user={}'.format(self.utility.path, self.utility.method, self.user.name))
+            LOG.info('ACL gateway authorization success: name={0}, path={1}, method={2}, user={3}'.format(self.utility.name, self.utility.path, self.utility.method, self.user.name))
             
             # Account has access
             return self._set_authorization(True)

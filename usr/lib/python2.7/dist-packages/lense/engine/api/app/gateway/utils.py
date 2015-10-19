@@ -66,6 +66,7 @@ class GatewayUtilitiesCreate:
         # Creation parameters
         params = {
             'uuid':       str(uuid4()),
+            'name':       self.api.data['name'],
             'path':       self.api.data['path'],
             'desc':       self.api.data['desc'],
             'method':     self.api.data['method'],
