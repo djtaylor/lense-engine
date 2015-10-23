@@ -156,6 +156,7 @@ class ACLUtility(object):
         self.model  = DBGatewayUtilities.objects.get(path=self.path, method=self.method)
         self.uuid   = self.model.uuid
         self.name   = self.model.name
+        self.anon   = self.model.allow_anon
         
         # Log utility retrieval
         LOG.info('Constructed API utility: name={0}, path={1}, method={2}, obj={3}, uuid={4}'.format(self.name, self.path, self.method, str(self.model), self.uuid))
@@ -365,6 +366,11 @@ class ACLGateway(object):
         Worker method used to make sure the API user has the appropriate permissions
         required to access the utility.
         """
+        
+        # Permit access to utilities which allow anonymous access
+        if self.utility.anon:
+            LOG.info('Utility "{0}" allows anonymous access, approving request'.format(self.utility.name))
+            return self._set_authorization(True)
         
         # Permit access to <auth/get> for all API users with a valid API key
         if self.utility.path == PATH.GET_TOKEN:

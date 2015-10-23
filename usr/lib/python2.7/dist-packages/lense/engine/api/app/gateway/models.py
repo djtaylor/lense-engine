@@ -44,6 +44,7 @@ class DBGatewayUtilities(models.Model):
     object_key = models.CharField(max_length=32, null=True, blank=True)
     protected  = models.NullBooleanField()
     enabled    = models.BooleanField()
+    allow_anon = models.NullBooleanField()
     locked     = models.NullBooleanField()
     locked_by  = models.CharField(max_length=64, null=True, blank=True)
     
