@@ -181,18 +181,26 @@ class RequestManager(object):
         # Log the user and group attempting to authenticate
         LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user, repr(self.request.group)))
         
-        # Authenticate key for token requests
-        if self._is_token_request():
-            auth_status = APIKey().validate(self.request)
+        # Making a request to an anonymous endpoint
+        if self.api_anon:
+            LOG.info('Handling anonymous request')
             
-            # API key authentication failed
-            if not auth_status['valid']:
-                return JSONError(error='Invalid API key', status=401).response()
+            # Token request
+            if self._is_token_request():
+                auth_status = APIKey().validate(self.request)
             
-            # API key authentication successfull
-            LOG.info('API key authentication successfull for user: {0}'.format(self.request.user))
+                # API key authentication failed
+                if not auth_status['valid']:
+                    return JSONError(error='Invalid API key', status=401).response()
+                
+                # API key authentication successfull
+                LOG.info('API key authentication successfull for user: {0}'.format(self.request.user))
             
-        # Authenticate token for API requests
+            # All other anonymous requests
+            else:
+                pass
+            
+        # Making an authenticated request
         else:
             
             # Invalid API token
@@ -240,6 +248,7 @@ class RequestManager(object):
         self.api_mod     = self.handler_obj['content']['api_mod']
         self.api_class   = self.handler_obj['content']['api_class']
         self.api_utils   = self.handler_obj['content']['api_utils']
+        self.api_anon    = self.handler_obj['content']['api_anon']
     
     def handler(self):
         """
@@ -380,6 +389,7 @@ class UtilityMapper(object):
                         'desc':   utility['desc'],
                         'method': utility['method'],
                         'utils':  None if not utility['utils'] else json.loads(utility['utils']),
+                        'anon':   False if not utility['allow_anon'] else utility['allow_anon'],
                         'json':   rmap_base
                     }
             
@@ -419,7 +429,8 @@ class UtilityMapper(object):
             'api_class': self.map[self.path]['class'],
             'api_path':  self.map[self.path]['path'],
             'api_utils': self.map[self.path]['utils'],
-            'api_map':   self.map[self.path]['json']
+            'api_map':   self.map[self.path]['json'],
+            'api_anon':  self.map[self.path]['anon']
         }
         LOG.info('Parsed handler object for API utility [{0}]: {1}'.format(self.path, self.handler_obj))
         
