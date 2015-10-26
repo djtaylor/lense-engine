@@ -77,6 +77,7 @@ class GatewayUtilitiesCreate:
             'enabled':    self.api.data['enabled'],
             'object':     self.api.data.get('object'),
             'object_key': self.api.data.get('object_key'),
+            'allow_anon': self.api.data.get('allow_anon', False),
             'locked':     False,
             'locked_by':  None,
             'rmap': json.dumps({
@@ -147,7 +148,8 @@ class GatewayUtilitiesSave:
             'enabled': self.api.data.get('enabled', util_row['enabled']),
             'protected': self.api.data.get('protected', util_row['protected']),
             'object': self.api.data.get('object', util_row['object']),
-            'object_key': self.api.data.get('object_key', util_row['object_key'])
+            'object_key': self.api.data.get('object_key', util_row['object_key']),
+            'allow_anon': self.api.data.get('allow_anon', util_row['allow_anon'])
         }
     
         # Make sure utilities value is a string
@@ -209,7 +211,8 @@ class GatewayUtilitiesValidate:
             'enabled': self.api.data.get('enabled', util_row['enabled']),
             'protected': self.api.data.get('protected', util_row['protected']),
             'object': self.api.data.get('object', util_row['object']),
-            'object_key': self.api.data.get('object_key', util_row['object_key'])
+            'object_key': self.api.data.get('object_key', util_row['object_key']),
+            'allow_anon': self.api.data.get('allow_anon', util_row['allow_anon'])
         }
     
         # Make sure the path string is valid

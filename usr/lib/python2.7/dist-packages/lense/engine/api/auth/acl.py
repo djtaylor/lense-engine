@@ -225,7 +225,7 @@ class ACLGateway(object):
         # Request object
         self.request       = request
         self.utility       = ACLUtility(self.request.path, self.request.method).get()
-        self.user          = ACLUser(self.request.user).get()
+        self.user          = None
         
         # Accessible objects / object key
         self.obj_list      = []
@@ -371,6 +371,10 @@ class ACLGateway(object):
         if self.utility.anon:
             LOG.info('Utility "{0}" allows anonymous access, approving request'.format(self.utility.name))
             return self._set_authorization(True)
+        
+        # Request is not anonymous, construct the user
+        else:
+            self.user = ACLUser(self.request.user).get()
         
         # Permit access to <auth/get> for all API users with a valid API key
         if self.utility.path == PATH.GET_TOKEN:
