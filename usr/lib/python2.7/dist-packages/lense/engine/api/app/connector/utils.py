@@ -4,6 +4,7 @@ import json
 from uuid import uuid4
 
 # Lense Libraries
+from lense.common.http import HTTP_GET
 from lense.common.utils import valid, invalid
 from lense.engine.api.app.connector.models import DBConnectors, DBConnectorsOAuth2
 
@@ -15,15 +16,29 @@ class ConnectorsGet:
         self.api = parent
 
         # Target connector
-        self.connector = self.api.data['uuid']
+        self.connector = self.api.acl.target_object()
         
     def launch(self):
         """
         Worker method for retrieving a connector.
         """
         
-        # Construct and return the web data
-        return valid('Successfully retrieved connector', {})
+        # Construct a list of authorized connector objects
+        auth_connectors = self.api.acl.authorized_objects('connector', path='connector', method=HTTP_GET)
+        
+        # If retrieving a specific user
+        if self.connector:
+            
+            # If the connector does not exist or access is denied
+            if not self.connector in auth_connectors.ids:
+                return invalid('Connector "{0}" does not exist or access denied'.format(self.connector))
+            
+            # Return the connector details
+            return valid(auth_connectors.extract(self.connector))
+            
+        # If retrieving all connectors
+        else:
+            return valid(auth_connectors.details)
 
 class ConnectorsCreate:
     """
@@ -64,9 +79,9 @@ class ConnectorsCreate:
                 oauth2_params = {
                     'uuid': str(uuid4()),
                     'connector': connector,
-                    'key_file': params['key_file'],
-                    'token_url': params['token_url'],
-                    'auth_url': params['auth_url']
+                    'key_file': self.api.data['key_file'],
+                    'token_url': self.api.data['token_url'],
+                    'auth_url': self.api.data['auth_url']
                 }
                 
                 # Create the OAuth2 entry
@@ -108,12 +123,23 @@ class ConnectorsDelete:
         self.api = parent
         
         # Target connector
-        self.connector = self.api.data['uuid']
+        self.connector = self.api.acl.target_object()
 
     def launch(self):
         """
         Worker method for deleting a connector.
         """
+        
+        # Construct a list of authorized connector objects
+        auth_connectors = self.api.acl.authorized_objects('connector', path='connector', method=HTTP_GET)
+        
+        # If the connector does not exist or access is denied
+        if not self.connector in auth_connectors.ids:
+            return invalid('Cannot delete connector "{0}", not found or access denied'.format(self.connector))
+        self.api.log.info('Deleting API connector "{0}"'.format(self.connector))
+
+        # Delete the API connector
+        DBConnectors.objects.filter(uuid=self.connector).delete()
         
         # Construct and return the web data
         return valid('Successfully deleted connector', {})

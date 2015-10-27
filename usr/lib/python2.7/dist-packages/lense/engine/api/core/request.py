@@ -11,7 +11,7 @@ from lense.common import config
 from lense.common import logger
 from lense.common.vars import TEMPLATES
 from lense.engine.api.base import APIBase
-from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET
+from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
 from lense.common.utils import JSONTemplate
 from lense.engine.api.auth.key import APIKey
 from lense.common.utils import valid, invalid, truncate
@@ -83,22 +83,50 @@ class RequestObject(object):
             truncate(str(self.data))
         ))
     
+    def _decode_json_recursive(self, json_str):
+        """
+        Hack/helper method for properly decoding JSON strings.
+        """
+        
+        # If the string is empty
+        if not json_str:
+            return {}
+        
+        # If already an object
+        if isinstance(json_str, dict):
+            return json_str
+        
+        # Decode the data
+        json_data = json.loads(json_str)
+        if not isinstance(json_data, dict):
+            
+            # If still needs further decoding
+            return self._decode_json_recursive(json_data)
+        return json_data
+    
     def _load_data(self):
         """
         Load request data depending on the method. For POST requests, load the request
         body, for GET requests, load the query string.
         """
     
-        # PUT/POST/DELETE requests
-        if self.method != HTTP_GET:
-            return json.loads(getattr(self.RAW, 'body', '{}'))
+        # PUT/POST requests
+        if self.method in [HTTP_POST, HTTP_PUT]:
+            
+            # Load the data string and strip special characters
+            data_str = getattr(self.RAW, 'body', '{}')
+            
+            # Return the JSON object
+            return self._decode_json_recursive(data_str)
         
-        # GET requests
+        # GET/DELETE requests
         else:
             data = {}
             
             # Store the query string
             query_str = self.RAW.META['QUERY_STRING']
+            
+            LOG.info('QUERY_STRING: {0}'.format(query_str))
             
             # If the query string is not empty
             if query_str:
