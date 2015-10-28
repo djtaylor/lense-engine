@@ -7,7 +7,7 @@ from uuid import uuid4
 from lense.common.http import HTTP_GET
 from lense.common.utils import valid, invalid
 from lense.engine.api.app.integrator.models import DBIntegrators
-from lense.engine.api.app.gateway.models import DBUtilities
+from lense.engine.api.app.gateway.models import DBGatewayUtilities
 
 class IntegratorsGet:
     """
@@ -41,7 +41,7 @@ class IntegratorsGet:
         else:
             return valid(auth_integrators.details)
 
-class IngtegratorsCreate:
+class IntegratorsCreate:
     """
     Create a new API integrator.
     """
@@ -54,7 +54,7 @@ class IngtegratorsCreate:
         """
 
         # Get a list of existing utility paths
-        util_paths = [x['path'] for x in DBUtilities.objects.values()]
+        util_paths = [x['path'] for x in DBGatewayUtilities.objects.values()]
 
         # If the path conflicts with a utility
         if path in util_paths:
