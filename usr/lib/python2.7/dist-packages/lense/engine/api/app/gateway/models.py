@@ -345,6 +345,19 @@ class DBGatewayACLGroupObjectConnectorPermissions(models.Model):
     class Meta:
         db_table = 'acl_group_object_connector_permissions'
         
+class DBGatewayACLGroupObjectIntegratorPermissions(models.Model):
+    """
+    Main database model for storing object ACL permissions for API integrator objects.
+    """
+    acl        = models.ForeignKey(DBGatewayACLKeys, to_field='uuid', db_column='acl')
+    connector  = models.ForeignKey('integrator.DBIntegrators', to_field='uuid', db_column='integrator')
+    owner      = models.ForeignKey('group.DBGroupDetails', to_field='uuid', db_column='owner')
+    allowed    = models.NullBooleanField()
+        
+    # Custom table metadata
+    class Meta:
+        db_table = 'acl_group_object_integrator_permissions'
+        
 class DBGatewayACLGroupGlobalPermissions(models.Model):
     """
     Main database model for storing global ACL permissions for groups.

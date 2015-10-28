@@ -48,15 +48,24 @@ class DBGroupDetailsQuerySet(models.query.QuerySet):
         ret = {}
         for obj_details in ACLObjects.get_values():
             obj_type  = obj_details['type']
-            obj_key   = '%s_id' % obj_type
+            obj_key   = '{0}_id'.format(obj_type)
             
             # Get an instance of the ACL class
             acl_def   = ACLObjects.get_values(obj_type)[0]
             acl_mod   = importlib.import_module(acl_def['acl_mod'])
             acl_class = getattr(acl_mod, acl_def['acl_cls'])
             
+            print 'ACL_DEF: {0}'.format(acl_def)
+            print 'ACL_MOD: {0}'.format(acl_mod)
+            print 'ACL_CLS: {0}'.format(acl_class)
+            
             # Get the object details
-            acl_obj   = list(acl_class.objects.filter(owner=group['uuid']).values())
+            try:
+                acl_obj   = list(acl_class.objects.filter(owner=group['uuid']).values())
+            except Exception as e:
+                print 'YEP - FAILED: {0}'.format(str(e))
+            
+            print 'ACL_OBJ: {0}'.format(acl_obj)
             for acl in acl_obj:
                 acl['object_id'] = acl[obj_key]
                 del acl[obj_key]
