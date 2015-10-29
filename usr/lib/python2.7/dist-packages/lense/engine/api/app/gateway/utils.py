@@ -58,6 +58,11 @@ class GatewayUtilitiesCreate:
     def __init__(self, parent):
         self.api  = parent
 
+    def _get_rmap(self):
+        if isinstance(self.api.data['rmap'], (dict, list)):
+            return json.dumps(self.api.data['rmap'])
+        return self.api.data['rmap']
+
     def launch(self):
         """
         Worker method for creating a new utility.
@@ -80,11 +85,7 @@ class GatewayUtilitiesCreate:
             'allow_anon': self.api.data.get('allow_anon', False),
             'locked':     False,
             'locked_by':  None,
-            'rmap': json.dumps({
-                '_type': 'dict',
-                '_required': [],
-                '_optional': []
-            })
+            'rmap':       self._get_rmap()
         }
         
         # Try to import the module and make sure it contains the class definition

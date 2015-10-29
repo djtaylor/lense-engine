@@ -5,7 +5,7 @@ from uuid import uuid4
 
 # Lense Libraries
 from lense.common.http import HTTP_GET
-from lense.common.utils import valid, invalid
+from lense.common.utils import valid, invalid, set_response
 from lense.engine.api.app.connector.models import DBConnectors, DBConnectorsOAuth2
 
 class ConnectorsGet:
@@ -38,7 +38,7 @@ class ConnectorsGet:
             
         # If retrieving all connectors
         else:
-            return valid(auth_connectors.details)
+            return valid(set_response(auth_connectors.details, '[]'))
 
 class ConnectorsCreate:
     """

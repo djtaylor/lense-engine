@@ -5,7 +5,7 @@ from uuid import uuid4
 
 # Lense Libraries
 from lense.common.http import HTTP_GET
-from lense.common.utils import valid, invalid
+from lense.common.utils import valid, invalid, set_response
 from lense.engine.api.app.integrator.models import DBIntegrators
 from lense.engine.api.app.gateway.models import DBGatewayUtilities
 
@@ -39,7 +39,7 @@ class IntegratorsGet:
             
         # If retrieving all integrators
         else:
-            return valid(auth_integrators.details)
+            return valid(set_response(auth_integrators.details, '[]'))
 
 class IntegratorsCreate:
     """
