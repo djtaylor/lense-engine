@@ -1,7 +1,7 @@
 from lense.common.utils import valid, invalid, set_response
 from lense.engine.api.app.stats.models import DBStatsRequest
 
-def log_request_stats(**params):
+def log_request_stats(params):
     """
     Helper method for logging request stats.
     """

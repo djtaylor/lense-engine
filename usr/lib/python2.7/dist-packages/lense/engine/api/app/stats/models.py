@@ -15,6 +15,7 @@ class DBStatsRequest(models.Model):
     retcode      = models.IntegerField()
     req_size     = models.IntegerField()
     rsp_size     = models.IntegerField()
+    rsp_time     = models.IntegerField()
     created      = models.DateTimeField(auto_now_add=True)
     
     # Custom table metadata

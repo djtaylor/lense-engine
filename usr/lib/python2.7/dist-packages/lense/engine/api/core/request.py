@@ -2,6 +2,8 @@ import os
 import re
 import json
 import importlib
+from time import gmtime
+from calendar import timegm
 from sys import getsizeof
 
 # Django Libraries
@@ -286,6 +288,9 @@ class RequestManager(object):
         Worker method for processing the incoming API request.
         """
         
+        # Request received timestamp
+        req_received = int(timegm(gmtime()))
+        
         # Validate the request
         try:
             validate_err = self._validate()
@@ -352,6 +357,9 @@ class RequestManager(object):
         # Close any open SocketIO connections
         self.api_base.socket.disconnect()
         
+        # Response sent timestamp
+        rsp_sent = int(timegm(gmtime()))
+        
         # Log the request
         log_request_stats({
             'path': self.request.path,
@@ -363,7 +371,8 @@ class RequestManager(object):
             'user_agent': self.request.agent,
             'retcode': int(response['code']),
             'req_size': int(self.request.size),
-            'rsp_size': int(getsizeof(response['content']))
+            'rsp_size': int(getsizeof(response['content'])),
+            'rsp_time': rsp_sent - req_received
         })
         
         # Return either a valid or invalid request response
