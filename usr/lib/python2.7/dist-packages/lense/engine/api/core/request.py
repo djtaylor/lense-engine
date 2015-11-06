@@ -2,8 +2,7 @@ import os
 import re
 import json
 import importlib
-from time import gmtime
-from calendar import timegm
+from time import time
 from sys import getsizeof
 
 # Django Libraries
@@ -289,7 +288,7 @@ class RequestManager(object):
         """
         
         # Request received timestamp
-        req_received = int(timegm(gmtime()))
+        req_received = int(round(time.time() * 1000))
         
         # Validate the request
         try:
@@ -358,7 +357,7 @@ class RequestManager(object):
         self.api_base.socket.disconnect()
         
         # Response sent timestamp
-        rsp_sent = int(timegm(gmtime()))
+        rsp_sent = int(round(time.time() * 1000))
         
         # Log the request
         log_request_stats({
