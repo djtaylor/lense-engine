@@ -288,7 +288,7 @@ class RequestManager(object):
         """
         
         # Request received timestamp
-        req_received = int(round(time.time() * 1000))
+        req_received = int(round(time() * 1000))
         
         # Validate the request
         try:
@@ -357,7 +357,7 @@ class RequestManager(object):
         self.api_base.socket.disconnect()
         
         # Response sent timestamp
-        rsp_sent = int(round(time.time() * 1000))
+        rsp_sent = int(round(time() * 1000))
         
         # Log the request
         log_request_stats({
@@ -366,12 +366,12 @@ class RequestManager(object):
             'client_ip': self.request.client,
             'client_user': self.request.user,
             'client_group': self.request.group,
-            'endpoint_ip': self.request.host,
+            'endpoint': self.request.host,
             'user_agent': self.request.agent,
             'retcode': int(response['code']),
             'req_size': int(self.request.size),
             'rsp_size': int(getsizeof(response['content'])),
-            'rsp_time': rsp_sent - req_received
+            'rsp_time_ms': rsp_sent - req_received
         })
         
         # Return either a valid or invalid request response

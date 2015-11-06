@@ -10,7 +10,7 @@ class DBStatsRequest(models.Model):
     client_ip    = models.CharField(max_length=15)
     client_user  = models.CharField(max_length=36)
     client_group = models.CharField(max_length=36)
-    endpoint_ip  = models.CharField(max_length=15)
+    endpoint     = models.CharField(max_length=128)
     user_agent   = models.CharField(max_length=256)
     retcode      = models.IntegerField()
     req_size     = models.IntegerField()
