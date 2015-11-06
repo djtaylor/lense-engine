@@ -2,6 +2,7 @@ import os
 import re
 import json
 import importlib
+from sys import getsizeof
 
 # Django Libraries
 from django.http import HttpResponse, HttpResponseServerError
@@ -19,6 +20,7 @@ from lense.engine.api.auth.acl import ACLGateway
 from lense.engine.api.auth.token import APIToken
 from lense.engine.api.app.user.models import DBUser
 from lense.engine.api.app.gateway.models import DBGatewayUtilities
+from lense.engine.api.app.stats.utils import log_request_stats
 
 # Configuration / Logger
 CONF = config.parse('ENGINE')
@@ -57,6 +59,8 @@ class RequestObject(object):
         self.headers     = request.META
         self.path        = request.META['PATH_INFO'][1:]
         self.client      = request.META['REMOTE_ADDR']
+        self.host        = request.META['HTTP_HOST']
+        self.size        = int(request.META['CONTENT_LENGTH'])
         self.data        = self._load_data()
     
         # API authorization attributes
@@ -125,8 +129,6 @@ class RequestObject(object):
             
             # Store the query string
             query_str = self.RAW.META['QUERY_STRING']
-            
-            LOG.info('QUERY_STRING: {0}'.format(query_str))
             
             # If the query string is not empty
             if query_str:
@@ -348,6 +350,17 @@ class RequestManager(object):
         
         # Close any open SocketIO connections
         self.api_base.socket.disconnect()
+        
+        # Log the request
+        log_request_stats({
+            'path': self.request.path,
+            'method': self.request.method,
+            'client_ip': self.request.client,
+            'endpoint_ip': self.request.host,
+            'retcode': int(response['code']),
+            'req_size': int(self.request.size),
+            'rsp_size': int(getsizeof(response['content']))
+        })
         
         # Return either a valid or invalid request response
         if response['valid']:
