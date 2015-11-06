@@ -94,7 +94,8 @@ INSTALLED_APPS = (
     'lense.engine.api.app.group',
     'lense.engine.api.app.connector',
     'lense.engine.api.app.callback',
-    'lense.engine.api.app.integrator'
+    'lense.engine.api.app.integrator',
+    'lense.engine.api.app.stats'
 )
 
 # Django middleware classes
