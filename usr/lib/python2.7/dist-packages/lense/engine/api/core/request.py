@@ -59,8 +59,9 @@ class RequestObject(object):
         self.headers     = request.META
         self.path        = request.META['PATH_INFO'][1:]
         self.client      = request.META['REMOTE_ADDR']
-        self.host        = request.META['HTTP_HOST']
-        self.size        = int(request.META['CONTENT_LENGTH'])
+        self.host        = request.META['HTTP_HOST'].split(':')[0]
+        self.agent       = request.META['HTTP_USER_AGENT']
+        self.size        = int(getsizeof(getattr(request, 'body', '')))
         self.data        = self._load_data()
     
         # API authorization attributes
@@ -356,7 +357,10 @@ class RequestManager(object):
             'path': self.request.path,
             'method': self.request.method,
             'client_ip': self.request.client,
+            'client_user': self.request.user,
+            'client_group': self.request.group,
             'endpoint_ip': self.request.host,
+            'user_agent': self.request.agent,
             'retcode': int(response['code']),
             'req_size': int(self.request.size),
             'rsp_size': int(getsizeof(response['content']))
