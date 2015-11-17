@@ -10,12 +10,11 @@ from lense.common import logger
 from lense.common.http import HEADER, PATH
 from lense.common.utils import invalid, valid
 from lense.common.collection import Collection
-from lense.engine.api.objects.manager import ObjectsManager
-from lense.engine.api.app.user.models import DBUser
-from lense.engine.api.app.group.models import DBGroupDetails, DBGroupMembers
-from lense.engine.api.app.gateway.models import DBGatewayACLAccessGlobal, DBGatewayACLAccessObject, \
-                                                  DBGatewayUtilities, DBGatewayACLKeys, \
-                                                  DBGatewayACLObjects
+from lense.common.objects.manager import ObjectsManager
+from lense.common.objects.user.models import APIUser
+from lense.common.objects.group.models import APIGroups, APIGroupMembers
+from lense.common.objects.utility.models import Utilities
+from lense.common.objects.acl.models import ACLGlobalAccess, ACLObjectAccess, ACLKeys, ACLObjects
               
 # Configuration / Logger / Objects Manager
 CONF    = config.parse('ENGINE')
@@ -26,7 +25,7 @@ def get_obj_def(obj_type):
     """
     Retrieve the object definition for a specific type.
     """
-    return [x for x in list(DBGatewayACLObjects.objects.all().values()) if x['type'] == obj_type][0]
+    return [x for x in list(ACLObjects.objects.all().values()) if x['type'] == obj_type][0]
          
 class ACLAuthObjects(object):
     """
@@ -80,7 +79,7 @@ class ACLAuthObjects(object):
             if not global_acl['allowed'] == 'yes': continue
             
             # Get all supported global utilities for this ACL
-            global_utilities = [x['utility_id'] for x in list(DBGatewayACLAccessGlobal.objects.filter(acl=global_acl['uuid']).values())]
+            global_utilities = [x['utility_id'] for x in list(ACLGlobalAccess.objects.filter(acl=global_acl['uuid']).values())]
             LOG.info('Retrieved utilities for ACL "{}": {}'.format(global_acl['acl'], str(global_utilities)))
             
             # If the ACL supports the target utility
@@ -153,7 +152,7 @@ class ACLUtility(object):
         # Utility name / UUID / object
         self.path   = path
         self.method = method
-        self.model  = DBGatewayUtilities.objects.get(path=self.path, method=self.method)
+        self.model  = Utilities.objects.get(path=self.path, method=self.method)
         self.uuid   = self.model.uuid
         self.name   = self.model.name
         self.anon   = self.model.allow_anon
@@ -185,7 +184,7 @@ class ACLUser(object):
         """
         acls = {}
         for group in self.groups:
-            group_details = list(DBGroupDetails.objects.filter(uuid=group).values())[0]
+            group_details = list(APIGroups.objects.filter(uuid=group).values())[0]
             acls[group] = {
                 'object': group_details['permissions']['object'],
                 'global': group_details['permissions']['global'],
@@ -201,10 +200,10 @@ class ACLUser(object):
         """
         
         # Get the user object
-        user_obj = DBUser.objects.get(username=self.name)
+        user_obj = APIUser.objects.get(username=self.name)
         
         # Construct a list of group UUIDs the user is a member of
-        groups = [x['group_id'] for x in list(DBGroupMembers.objects.filter(member=user_obj.uuid).values())]
+        groups = [x['group_id'] for x in list(APIGroupMembers.objects.filter(member=user_obj.uuid).values())]
     
         # Log the user's group membership
         LOG.info('Constructed group membership for user [{}]: {}'.format(user_obj.uuid, json.dumps(groups)))
@@ -259,7 +258,7 @@ class ACLGateway(object):
             if not global_acl['allowed'] == 'yes': continue
             
             # Get all globally accessible utilities for this ACL
-            global_access = [x['utility_id'] for x in list(DBGatewayACLAccessGlobal.objects.filter(acl=global_acl['uuid']).values())]
+            global_access = [x['utility_id'] for x in list(ACLGlobalAccess.objects.filter(acl=global_acl['uuid']).values())]
             
             # If the ACL supports the target utility
             if self.utility.uuid in global_access:

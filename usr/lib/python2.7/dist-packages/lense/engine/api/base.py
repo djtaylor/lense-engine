@@ -15,7 +15,7 @@ from lense.common import logger
 from lense.common.http import PATH, MIME_TYPE, JSONError, JSONException
 from lense.common.utils import valid, invalid
 from lense.common.collection import Collection
-from lense.engine.api.objects.cache import CacheManager
+from lense.common.objects.cache import CacheManager
 from lense.engine.api.objects.manager import ObjectsManager
 from lense.engine.api.core.socket import SocketResponse
 
@@ -177,7 +177,7 @@ class APIBase(object):
                 mod_obj    = importlib.import_module(mod_name)
                 class_obj  = getattr(mod_obj, class_name)
                 class_inst = class_obj(copy.copy(self))
-                self.log_int.info('Loading utility class: [{}]'.format(class_inst))
+                self.log_int.info('Loading utility class: {0}'.format(class_inst))
                 
                 # Add to the utilities object
                 util_obj[class_name] = class_inst

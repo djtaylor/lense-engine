@@ -7,7 +7,7 @@ from django.conf import settings
 from lense.common import config
 from lense.common import logger
 from lense.common.utils import valid, invalid, rstring
-from lense.engine.api.app.user.models import DBUserAPITokens, DBUser
+from lense.common.objects.user.models import APIUser, APIUserTokens
 
 class APIToken(object):
     """
@@ -25,17 +25,17 @@ class APIToken(object):
         """
         
         # Check if the user exists
-        api_user = DBUser.objects.filter(username=id).count()
+        api_user = APIUser.objects.filter(username=id).count()
         if not api_user:
             return invalid('Authentication failed, account [{}] not found'.format(id))
             
         # Make sure the user is enabled
-        user_obj = DBUser.objects.get(username=id)
+        user_obj = APIUser.objects.get(username=id)
         if not user_obj.is_active:
             return invalid('Authentication failed, account [{}] is disabled'.format(id))
         
         # Return the API token row
-        api_token_row = list(DBUserAPITokens.objects.filter(user=user_obj.uuid).values())
+        api_token_row = list(APIUserTokens.objects.filter(user=user_obj.uuid).values())
 
         # User has no API key
         if not api_token_row:
@@ -51,7 +51,7 @@ class APIToken(object):
             
         # Create a new API token
         self.log.info('Generating API token for client [{}]'.format(id))
-        db_token  = DBUserAPITokens(id = None, user=DBUser.objects.get(username=id), token=token_str, expires=expires)
+        db_token  = APIUserTokens(id = None, user=APIUser.objects.get(username=id), token=token_str, expires=expires)
         db_token.save()
         
         # Return the token
@@ -64,7 +64,7 @@ class APIToken(object):
         self.log.info('Retrieving API token for ID [{}]'.format(id))
             
         # Check if the user exists
-        api_user  = DBUser.objects.filter(username=id).count()
+        api_user  = APIUser.objects.filter(username=id).count()
         
         # Attempt to retrieve an existing token
         api_token = self._get_api_token(id=id)

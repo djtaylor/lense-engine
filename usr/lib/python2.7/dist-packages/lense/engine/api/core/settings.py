@@ -73,7 +73,7 @@ ENCRYPTED_FIELDS_KEYDIR = DB_ENCRYPT_DIR
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.mysql',
-        'NAME':     'lense',
+        'NAME':     CONFIG.db.name,
         'USER':     CONFIG.db.user,
         'PASSWORD': CONFIG.db.password,
         'HOST':     CONFIG.db.host,
@@ -89,13 +89,11 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'lense.engine.api.app.gateway',
-    'lense.engine.api.app.user',
-    'lense.engine.api.app.group',
-    'lense.engine.api.app.connector',
-    'lense.engine.api.app.callback',
-    'lense.engine.api.app.integrator',
-    'lense.engine.api.app.stats'
+    'lense.common.objects.acl',
+    'lense.common.objects.group',
+    'lense.common.objects.user',
+    'lense.common.objects.utility'
+    'lense.common.objects.stats'
 )
 
 # Django middleware classes

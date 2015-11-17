@@ -13,15 +13,15 @@ from lense.common import config
 from lense.common import logger
 from lense.common.vars import TEMPLATES
 from lense.engine.api.base import APIBase
-from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
 from lense.common.utils import JSONTemplate
 from lense.engine.api.auth.key import APIKey
-from lense.common.utils import valid, invalid, truncate
 from lense.engine.api.auth.acl import ACLGateway
 from lense.engine.api.auth.token import APIToken
-from lense.engine.api.app.user.models import DBUser
-from lense.engine.api.app.gateway.models import DBGatewayUtilities
+from lense.common.objects.user.models import APIUser
+from lense.common.utils import valid, invalid, truncate
+from lense.common.objects.utility.models import Utilities
 from lense.engine.api.app.stats.utils import log_request_stats
+from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
 
 # Configuration / Logger
 CONF = config.parse('ENGINE')
@@ -243,7 +243,7 @@ class RequestManager(object):
             LOG.info('API token authentication successfull for user: {0}'.format(self.request.user))
     
         # Check for a user account
-        if DBUser.objects.filter(username=self.request.user).count():
+        if APIUser.objects.filter(username=self.request.user).count():
             
             # If no API group was supplied
             if not self.request.group:
@@ -251,7 +251,7 @@ class RequestManager(object):
             
             # Make sure the group exists and the user is a member
             is_member = False
-            for group in DBUser.objects.filter(username=self.request.user).values()[0]['groups']:
+            for group in APIUser.objects.filter(username=self.request.user).values()[0]['groups']:
                 if group['uuid'] == self.request.group:
                     is_member = True
                     break
@@ -417,7 +417,7 @@ class UtilityMapper(object):
         """
         Load all utility definitions.
         """
-        for utility in list(DBGatewayUtilities.objects.all().values()):
+        for utility in list(Utilities.objects.all().values()):
             
             # Try to load the request map
             try:
@@ -470,11 +470,11 @@ class UtilityMapper(object):
         
         # Invalid request path
         if not self.path in self.map:
-            return invalid(JSONError(error='Unsupported request path: [{0}]'.format(self.path), status=400).response())
+            return invalid(JSONError(error='Unsupported request path: {0}'.format(self.path), status=400).response())
         
         # Verify the request method
         if self.method != self.map[self.path]['method']:
-            return invalid(JSONError(error='Unsupported request method [{0}] for path [{1}]'.format(self.method, self.path), status=400).response())
+            return invalid(JSONError(error='Unsupported request method "{0}" for path "{1}"'.format(self.method, self.path), status=400).response())
         
         # Get the API module, class handler, and name
         self.handler_obj = {
@@ -485,7 +485,7 @@ class UtilityMapper(object):
             'api_map':   self.map[self.path]['json'],
             'api_anon':  self.map[self.path]['anon']
         }
-        LOG.info('Parsed handler object for API utility [{0}]: {1}'.format(self.path, self.handler_obj))
+        LOG.info('Parsed handler object for API utility "{0}": {1}'.format(self.path, self.handler_obj))
         
         # Return the handler module path
         return valid(self.handler_obj)

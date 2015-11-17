@@ -2,8 +2,7 @@ import json
 
 # Lense Libraries
 from lense.common.utils import valid, invalid, rstring
-from lense.engine.api.app.user.models import DBUserAPIKeys, DBUser
-from lense.engine.api.app.group.models import DBGroupDetails
+from lense.common.objects.user.models import APIUserKeys, APIUser
 
 class APIKey(object):
     """
@@ -21,17 +20,17 @@ class APIKey(object):
         """
         
         # Check if the user exists
-        api_user = DBUser.objects.filter(username=id).count()
+        api_user = APIUser.objects.filter(username=id).count()
         if not api_user:
             return invalid('Authentication failed, account [{}] not found'.format(id))
 
         # Make sure the user is enabled
-        user_obj = DBUser.objects.get(username=id)
+        user_obj = APIUser.objects.get(username=id)
         if not user_obj.is_active:
             return invalid('Authentication failed, account [{}] is disabled'.format(id))
         
         # Return the API key row
-        api_key_row = list(DBUserAPIKeys.objects.filter(user=user_obj.uuid).values())
+        api_key_row = list(APIUserKeys.objects.filter(user=user_obj.uuid).values())
 
         # User has no API key
         if not api_key_row: 
