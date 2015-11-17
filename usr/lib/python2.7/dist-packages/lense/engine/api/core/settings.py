@@ -92,7 +92,7 @@ INSTALLED_APPS = (
     'lense.common.objects.acl',
     'lense.common.objects.group',
     'lense.common.objects.user',
-    'lense.common.objects.utility'
+    'lense.common.objects.utility',
     'lense.common.objects.stats'
 )
 
