@@ -16,7 +16,7 @@ from lense.common.http import PATH, MIME_TYPE, JSONError, JSONException
 from lense.common.utils import valid, invalid
 from lense.common.collection import Collection
 from lense.common.objects.cache import CacheManager
-from lense.engine.api.objects.manager import ObjectsManager
+from lense.common.objects.manager import ObjectsManager
 from lense.engine.api.core.socket import SocketResponse
 
 class APIEmail(object):

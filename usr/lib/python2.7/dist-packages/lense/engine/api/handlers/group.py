@@ -336,7 +336,7 @@ class Group_Create:
             
         # Create the group
         try:
-            DBGroupDetails(
+            APIGroups(
                 uuid      = group_uuid,
                 name      = self.api.data['name'],
                 desc      = self.api.data['desc'],
