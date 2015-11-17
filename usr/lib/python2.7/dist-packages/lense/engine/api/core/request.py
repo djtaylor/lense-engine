@@ -20,7 +20,7 @@ from lense.engine.api.auth.token import APIToken
 from lense.common.objects.user.models import APIUser
 from lense.common.utils import valid, invalid, truncate
 from lense.common.objects.utility.models import Utilities
-from lense.engine.api.app.stats.utils import log_request_stats
+from lense.engine.api.handlers.stats import log_request_stats
 from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
 
 # Configuration / Logger
