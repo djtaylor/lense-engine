@@ -10,23 +10,19 @@ from django.test.client import RequestFactory
 from django.core.serializers.json import DjangoJSONEncoder
 
 # Lense Libraries
-from lense.common import config
-from lense.common import logger
+from lense.common import LenseCommon
 from lense.common.http import PATH, MIME_TYPE, JSONError, JSONException
-from lense.common.utils import valid, invalid
-from lense.common.collection import Collection
 from lense.common.objects.cache import CacheManager
 from lense.common.objects.manager import ObjectsManager
 from lense.engine.api.core.socket import SocketResponse
+
+# Lense Common
+LENSE = LenseCommon('ENGINE')
 
 class APIEmail(object):
     """
     Wrapper class for handling emails.
     """
-    def __init__(self):
-        self.conf = config.parse('ENGINE')
-        self.log  = logger.create(__name__, self.conf.engine.log)
-    
     def send(self, subject, body, sender, recipient):
         """
         Send an email.
@@ -40,7 +36,7 @@ class APIEmail(object):
         @param recipient: Email recipients
         @type  list|str   A list of recipient emails, or a single email string
         """
-        if self.conf.email.smtp_enable:
+        if LENSE.CONF.email.smtp_enable:
                 
             # Send the email
             try:
@@ -50,12 +46,12 @@ class APIEmail(object):
                 
                 # Send the email
                 send_mail(subject, body, from_email=sender, recipient_list=_recipient, fail_silently=False)
-                self.log.info('Sent email to "{}"'.format(_recipient))
+                LENSE.LOG.info('Sent email to "{}"'.format(_recipient))
                 return True
             
             # Failed to send email
             except Exception as e:
-                self.log.exception('Failed to send email to "{}": {}'.format(str(_recipient), str(e)))
+                LENSE.LOG.exception('Failed to send email to "{}": {}'.format(str(_recipient), str(e)))
                 return False
 
         # SMTP disabled
@@ -93,10 +89,8 @@ class APIBare(object):
         self.data    = data
         self.email   = APIEmail()
         
-        # Configuration / logger
-        self.conf    = config.parse('ENGINE')
+        # API logger
         self.log     = APILogger(self)
-        self.log_int = logger.create(path, self.conf.engine.log)
         
     def _get_request(self):
         """
@@ -147,10 +141,6 @@ class APIBase(object):
         self.method       = request.method
         self.email        = APIEmail()
         
-        # Configuration / internal logger
-        self.conf         = config.parse('ENGINE')
-        self.log_int      = logger.create('{}:{}'.format(self.path, self.method), self.conf.engine.log)
-
         # External utilities / utilities object / cache manager / objects manager / ACL gateway
         self.utils        = utils
         self.util         = None
@@ -177,13 +167,13 @@ class APIBase(object):
                 mod_obj    = importlib.import_module(mod_name)
                 class_obj  = getattr(mod_obj, class_name)
                 class_inst = class_obj(copy.copy(self))
-                self.log_int.info('Loading utility class: {0}'.format(class_inst))
+                LENSE.LOG.info('Loading utility class: {0}'.format(class_inst))
                 
                 # Add to the utilities object
                 util_obj[class_name] = class_inst
                 
             # Store the utility instance
-            self.util = Collection(util_obj).get()
+            self.util = LENSE.COLLECTION(util_obj).get()
         
     def _set_websock(self):
         """
@@ -192,7 +182,7 @@ class APIBase(object):
         if 'socket' in self.request.data:
             
             # Log the socket connection
-            self.log_int.info('Received connection from web socket client: {}'.format(str(self.request.data['socket'])))
+            LENSE.LOG.info('Received connection from web socket client: {}'.format(str(self.request.data['socket'])))
             
             # Set the web socket response attributes
             self.websock = self.socket.set(self.request.data['socket'])
@@ -224,7 +214,7 @@ class APIBase(object):
         self.log = APILogger(self)
         
         # Return the constructed API object, ready for authentication or other requests
-        return valid(self)
+        return LENSE.VALID(self)
     
 class APILogger(object):
     """

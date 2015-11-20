@@ -2,8 +2,10 @@ import json
 from socketIO_client import SocketIO
 
 # Lense Libraries
-from lense.common import config
-from lense.common import logger
+from lense.common import LenseCommon
+
+# Lense Common
+LENSE = LenseCommon('ENGINE')
 
 class SocketResponse(object):
     """
@@ -30,22 +32,22 @@ class SocketResponse(object):
         try:
             
             # If the Socket.IO proxy server is enabled
-            if self.conf.socket.enable:
+            if LENSE.CONF.socket.enable:
                 
-                self.log.info('Opening SocketIO proxy connection: {}:{}'.format(self.conf.socket.host, self.conf.socket.port))
+                LENSE.LOG.info('Opening SocketIO proxy connection: {}:{}'.format(LENSE.CONF.socket.host, LENSE.CONF.socket.port))
             
                 # Open the Socket.IO client connection
-                self.socket_io = SocketIO(self.conf.socket.host, int(self.conf.socket.port))
+                self.socket_io = SocketIO(LENSE.CONF.socket.host, int(LENSE.CONF.socket.port))
                 
                 # Socket connection opened sucessfully
-                self.log.info('Initialized SocketIO proxy connection')
+                LENSE.LOG.info('Initialized SocketIO proxy connection')
                 
             else:
-                self.log.info('SocketIO proxy server disabled - skipping...')
+                LENSE.LOG.info('SocketIO proxy server disabled - skipping...')
             
         # Critical error when opening connection
         except Exception as e:
-            self.log.info('Failed to initialize SocketIO proxy connection: {}'.format(str(e)))
+            LENSE.LOG.info('Failed to initialize SocketIO proxy connection: {}'.format(str(e)))
             return False
         
         # Return the constructed Socket.IO client
@@ -66,7 +68,7 @@ class SocketResponse(object):
         """
         try:
             self.socket_io.disconnect()
-            self.log.info('Closing SocketIO proxy connection')
+            LENSE.LOG.info('Closing SocketIO proxy connection')
         except:
             pass
         
@@ -74,12 +76,12 @@ class SocketResponse(object):
         """
         Broadcast data to all web socket clients.
         """
-        if self.socket_io and self.conf.socket.enable:
+        if self.socket_io and LENSE.CONF.socket.enable:
             self.socket_io.emit('update', {'type': t, 'content': d})
         
     def loading(self, m=None):
         """
         Send a loading messages to a web socket client.
         """
-        if self.web_socket and self.socket_io and self.conf.socket.enable:
+        if self.web_socket and self.socket_io and LENSE.CONF.socket.enable:
             self.socket_io.emit('update', { 'room': self.web_socket['room'], 'type': 'loading', 'content': m})

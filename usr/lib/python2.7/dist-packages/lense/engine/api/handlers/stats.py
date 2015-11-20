@@ -2,6 +2,7 @@ import re
 from django.db.models import Q
 
 # Lense Libraries
+from lense.engine.api.handlers import RequestHandler
 from lense.common.utils import valid, invalid, set_response
 from lense.common.objects.stats.models import APIRequestStats
 
@@ -11,7 +12,7 @@ def log_request_stats(params):
     """
     APIRequestStats(**params).save()
 
-class StatsRequest_Get:
+class StatsRequest_Get(RequestHandler):
     """
     Retrieve API request statistics.
     

@@ -5,11 +5,12 @@ from uuid import uuid4
 
 # Lense Libraries
 from lense import MODULE_ROOT
+from lense.engine.api.handlers import RequestHandler
 from lense.common.objects.acl.models import ACLObjects
 from lense.common.objects.utility.models import Utilities
 from lense.common.utils import valid, invalid, mod_has_class
 
-class Utility_Delete:
+class Utility_Delete(RequestHandler):
     """
     Delete an existing API utility.
     """
@@ -47,7 +48,7 @@ class Utility_Delete:
         }
         return valid('Successfully deleted utility', web_data)
 
-class Utility_Create:
+class Utility_Create(RequestHandler):
     """
     Create a new API utility.
     """
@@ -107,7 +108,7 @@ class Utility_Create:
         except Exception as e:
             return invalid('Failed to create utility: {0}'.format(str(e)))
 
-class Utility_Save:
+class Utility_Save(RequestHandler):
     """
     Save changes to an API utility.
     """
@@ -168,7 +169,7 @@ class Utility_Save:
         # Successfully updated utility
         return valid('Successfully updated utility.')
 
-class Utility_Validate:
+class Utility_Validate(RequestHandler):
     """
     Validate changes to an API utility prior to saving.
     """
@@ -270,7 +271,7 @@ class Utility_Validate:
         # Utility is valid
         return valid('Utility validation succeeded.')
 
-class Utility_Close:
+class Utility_Close(RequestHandler):
     """
     Close an API utility and release the editing lock.
     """
@@ -309,7 +310,7 @@ class Utility_Close:
         except Exception as e:
             return invalid(self.api.log.error('Failed to check in utility with error: {0}'.format(str(e))))
 
-class Utility_Open:
+class Utility_Open(RequestHandler):
     """
     Open an API utility for editing.
     """
@@ -359,7 +360,7 @@ class Utility_Open:
         except Exception as e:
             return invalid(self.api.log.error('Failed to check out utility for editing with error: {0}'.format(str(e))))
 
-class Utility_Get:
+class Utility_Get(RequestHandler):
     """
     Retrieve a listing of API utilities.
     """

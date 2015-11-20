@@ -1,11 +1,11 @@
 import os
 
 # Lense Libraries
-from lense.common.vars import TEMPLATES, DB_ENCRYPT_DIR
-import lense.common.config as config
+from lense.commomn import LenseCommon
+from lense.common.vars import DB_ENCRYPT_DIR
 
-# Configuration
-CONFIG           = config.parse('ENGINE')
+# Lense Common
+LENSE            = LenseCommon('ENGINE')
 
 # Project base directory
 BASE_DIR         = os.path.dirname(os.path.dirname(__file__))
@@ -17,7 +17,7 @@ DEBUG            = True
 ALLOWED_HOSTS    = []
 
 # Secret key
-SECRET_KEY       = CONFIG.engine.secret
+SECRET_KEY       = LENSE.CONF.engine.secret
 
 # Internationalization settings
 LANGUAGE_CODE    = 'en-us'
@@ -39,15 +39,13 @@ ROOT_URLCONF     = 'lense.engine.api.core.urls'
 WSGI_APPLICATION = 'lense.engine.api.core.wsgi.application'
 
 # API request templates
-API_TEMPLATES    = '{0}/api'.format(TEMPLATES.ENGINE)
+API_TEMPLATES    = '{0}/api'.format(LENSE.PROJECT.TEMPLATES)
 
 # Template directories
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-           TEMPLATES.ENGINE
-        ],
+        'DIRS': [ LENSE.PROJECT.TEMPLATES ],
         'APP_DIRS': False,
         'OPTIONS': {
             'context_processors': [
@@ -64,7 +62,7 @@ TEMPLATES = [
 ]
 
 # SMTP backend
-EMAIL_HOST       = CONFIG.email.smtp_host
+EMAIL_HOST       = LENSE.CONF.email.smtp_host
 
 # Database encryption keys
 ENCRYPTED_FIELDS_KEYDIR = DB_ENCRYPT_DIR
@@ -73,11 +71,11 @@ ENCRYPTED_FIELDS_KEYDIR = DB_ENCRYPT_DIR
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.mysql',
-        'NAME':     CONFIG.db.name,
-        'USER':     CONFIG.db.user,
-        'PASSWORD': CONFIG.db.password,
-        'HOST':     CONFIG.db.host,
-        'PORT':     CONFIG.db.port
+        'NAME':     LENSE.CONF.db.name,
+        'USER':     LENSE.CONF.db.user,
+        'PASSWORD': LENSE.CONF.db.password,
+        'HOST':     LENSE.CONF.db.host,
+        'PORT':     LENSE.CONF.db.port
     }
 }
 

@@ -6,10 +6,11 @@ from uuid import uuid4
 from lense.common.http import HTTP_GET
 from lense.common.utils import valid, invalid
 from lense.common.vars import G_ADMIN, U_ADMIN
+from lense.engine.api.handlers import RequestHandler
 from lense.common.objects.user.models import APIUser
 from lense.common.objects.group.models import APIGroups, APIGroupMembers
 
-class GroupMember_Remove:
+class GroupMember_Remove(RequestHandler):
     """
     API class designed to handle remove group members.
     """
@@ -69,7 +70,7 @@ class GroupMember_Remove:
             }
         })
 
-class GroupMember_Add:
+class GroupMember_Add(RequestHandler):
     """
     API class designed to handle adding group members.
     """
@@ -133,7 +134,7 @@ class GroupMember_Add:
             }
         })
 
-class Group_Delete:
+class Group_Delete(RequestHandler):
     """
     API class designed to handle deleting groups.
     """
@@ -177,7 +178,7 @@ class Group_Delete:
             'uuid': self.group
         })
 
-class Group_Update:
+class Group_Update(RequestHandler):
     """
     API class designed to handle updating attributes and permissions for a group.
     """
@@ -301,7 +302,7 @@ class Group_Update:
             'old_name':    False if not self.name_change else self.name_old
         })
 
-class Group_Create:
+class Group_Create(RequestHandler):
     """
     API class designed to handle the creation of groups.
     """
@@ -355,7 +356,7 @@ class Group_Create:
             'protected': self.api.data.get('protected', False)
         })
 
-class Group_Get:
+class Group_Get(RequestHandler):
     """
     API class designed to retrieve the details of a single group, or a list of all group
     details.

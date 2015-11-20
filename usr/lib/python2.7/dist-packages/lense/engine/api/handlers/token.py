@@ -1,8 +1,9 @@
 # Lense Libraries
 from lense.common.utils import valid, invalid
 from lense.engine.api.auth.token import APIToken
+from lense.engine.api.handlers import RequestHandler
 
-class Token_Get:
+class Token_Get(RequestHandler):
     """
     Class used to handle token requests.
     """

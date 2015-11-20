@@ -9,23 +9,20 @@ from sys import getsizeof
 from django.http import HttpResponse, HttpResponseServerError
 
 # Lense Libraries
-from lense.common import config
-from lense.common import logger
-from lense.common.vars import TEMPLATES
+from lense.common import LenseCommon
+from lense.common.utils import truncate
 from lense.engine.api.base import APIBase
 from lense.common.utils import JSONTemplate
 from lense.engine.api.auth.key import APIKey
 from lense.engine.api.auth.acl import ACLGateway
 from lense.engine.api.auth.token import APIToken
 from lense.common.objects.user.models import APIUser
-from lense.common.utils import valid, invalid, truncate
 from lense.common.objects.utility.models import Utilities
 from lense.engine.api.handlers.stats import log_request_stats
 from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
 
-# Configuration / Logger
-CONF = config.parse('ENGINE')
-LOG  = logger.create(__name__, CONF.engine.log)
+# Lense Common
+LENSE = LenseCommon('ENGINE')
 
 def dispatch(request):
     """
@@ -46,131 +43,6 @@ def dispatch(request):
     except Exception as e:
         return JSONException().response()
   
-class RequestObject(object):
-    """
-    Extract and construct information from the Django request object.
-    """
-    def __init__(self, request):
-    
-        # Store the raw request object
-        self.RAW         = request
-        
-        # Request data / method / headers / path / client address
-        self.method      = request.META['REQUEST_METHOD']
-        self.headers     = request.META
-        self.path        = request.META['PATH_INFO'][1:]
-        self.client      = request.META['REMOTE_ADDR']
-        self.host        = request.META['HTTP_HOST'].split(':')[0]
-        self.agent       = request.META['HTTP_USER_AGENT']
-        self.size        = int(getsizeof(getattr(request, 'body', '')))
-        self.data        = self._load_data()
-    
-        # API authorization attributes
-        self.user        = self.headers.get('HTTP_{0}'.format(HEADER.API_USER.upper().replace('-', '_')))
-        self.group       = self.headers.get('HTTP_{0}'.format(HEADER.API_GROUP.upper().replace('-', '_')))
-        self.key         = self.headers.get('HTTP_{0}'.format(HEADER.API_KEY.upper().replace('-', '_')), '')
-        self.token       = self.headers.get('HTTP_{0}'.format(HEADER.API_TOKEN.upper().replace('-', '_')), '')
-    
-        # Debug logging for each request
-        self._log_request()
-        
-    def _log_request(self):
-        """
-        Helper method for debug logging for each request.
-        """
-        LOG.info('REQUEST_OBJECT: method={0}, path={1}, client={2}, user={3}, group={4}, key={5}, token={6}, data={7}'.format(
-            self.method,
-            self.path,
-            self.client,
-            self.user,
-            self.group,
-            self.key,
-            self.token,
-            truncate(str(self.data))
-        ))
-    
-    def _decode_json_recursive(self, json_str):
-        """
-        Hack/helper method for properly decoding JSON strings.
-        """
-        
-        # If the string is empty
-        if not json_str:
-            return {}
-        
-        # If already an object
-        if isinstance(json_str, dict):
-            return json_str
-        
-        # Decode the data
-        json_data = json.loads(json_str)
-        if not isinstance(json_data, dict):
-            
-            # If still needs further decoding
-            return self._decode_json_recursive(json_data)
-        return json_data
-    
-    def _load_data(self):
-        """
-        Load request data depending on the method. For POST requests, load the request
-        body, for GET requests, load the query string.
-        """
-    
-        # PUT/POST requests
-        if self.method in [HTTP_POST, HTTP_PUT]:
-            
-            # Load the data string and strip special characters
-            data_str = getattr(self.RAW, 'body', '{}')
-            
-            # Return the JSON object
-            return self._decode_json_recursive(data_str)
-        
-        # GET/DELETE requests
-        else:
-            data = {}
-            
-            # Store the query string
-            query_str = self.RAW.META['QUERY_STRING']
-            
-            # If the query string is not empty
-            if query_str:
-                
-                # Process each query string key
-                for query_pair in self.RAW.META['QUERY_STRING'].split('&'):
-                    
-                    # If processing a key/value pair
-                    if '=' in query_pair:
-                        query_set = query_pair.split('=')
-                        
-                        # Return JSON if possible
-                        try:
-                            data[query_set[0]] = json.loads(query_set[1])
-                            
-                        # Non-JSON parseable value
-                        except:
-                            
-                            # Integer value
-                            try:
-                                data[query_set[0]] = int(query_set[1])
-                            
-                            # String value
-                            except:
-                                data[query_set[0]] = query_set[1]
-                        
-                    # If processing a key flag
-                    else:
-                        data[query_pair] = True
-                        
-            # Return the request data
-            return data
-    
-    @staticmethod
-    def construct(request):
-        """
-        Construct and return a Lense request object from a Django request object.
-        """
-        return RequestObject(request)
-  
 class RequestManager(object):
     """
     The API request manager class. Serves as the entry point for all API request,
@@ -184,7 +56,7 @@ class RequestManager(object):
     def __init__(self, request):
         
         # Construct a request object
-        self.request     = RequestObject.construct(request)
+        self.request     = LENSE.REQUEST.SET(request)
     
         # Request endpoint handler
         self.handler_obj = None
@@ -211,11 +83,11 @@ class RequestManager(object):
         """
         
         # Log the user and group attempting to authenticate
-        LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user, repr(self.request.group)))
+        LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user, repr(self.request.group)))
         
         # Making a request to an anonymous endpoint
         if self.api_anon:
-            LOG.info('Handling anonymous request')
+            LENSE.LOG.info('Handling anonymous request')
             
             # Token request
             if self._is_token_request():
@@ -226,7 +98,7 @@ class RequestManager(object):
                     return JSONError(error='Invalid API key', status=401).response()
                 
                 # API key authentication successfull
-                LOG.info('API key authentication successfull for user: {0}'.format(self.request.user))
+                LENSE.LOG.info('API key authentication successfull for user: {0}'.format(self.request.user))
             
             # All other anonymous requests
             else:
@@ -240,7 +112,7 @@ class RequestManager(object):
                 return JSONError(error='Invalid API token', status=401).response()
             
             # API token looks good
-            LOG.info('API token authentication successfull for user: {0}'.format(self.request.user))
+            LENSE.LOG.info('API token authentication successfull for user: {0}'.format(self.request.user))
     
         # Check for a user account
         if APIUser.objects.filter(username=self.request.user).count():
@@ -266,7 +138,7 @@ class RequestManager(object):
         """
     
         # Map the path to a module, class, and API name
-        self.handler_obj = UtilityMapper(self.request.path, self.request.method).handler()
+        self.handler_obj = RequestMapper(self.request.path, self.request.method).handler()
         if not self.handler_obj['valid']:
             return self.handler_obj['content']
     
@@ -379,13 +251,13 @@ class RequestManager(object):
             return self.api_base.log.success(response['content'], response['data'])
         return self.api_base.log.error(code=response['code'], log_msg=response['content'])
     
-class UtilityMapper(object):
+class RequestMapper(object):
     """
-    Map a request path to an API utility. Loads the utility request details and map.
+    Map a request path to an API handler. Loads the handler request details and map.
     """
     def __init__(self, path=None, method=None):
         """
-        Construct the UtilityMapper class.
+        Construct the RequestMapper class.
         
         @param path:   The request path
         @type  path:   str
@@ -403,7 +275,7 @@ class UtilityMapper(object):
         """
         
         # Load the socket request validator map
-        sv = json.loads(open('{0}/api/base/socket.json'.format(TEMPLATES.ENGINE), 'r').read())
+        sv = json.loads(open('{0}/api/base/socket.json'.format(LENSE.PROJECT.TEMPLATES), 'r').read())
         
         # Make sure the '_children' key exists
         if not '_children' in j['root']:
@@ -415,7 +287,7 @@ class UtilityMapper(object):
         
     def _build_map(self):
         """
-        Load all utility definitions.
+        Load all handler definitions.
         """
         for utility in list(Utilities.objects.all().values()):
             
@@ -446,17 +318,17 @@ class UtilityMapper(object):
                         'json':   rmap_base
                     }
             
-            # Error constructing request map, skip to next utility map
+            # Error constructing request map, skip to next handler map
             except Exception as e:
-                LOG.exception('Failed to load request map for utility [{0}]: {1} '.format(utility['path'], str(e)))
+                LENSE.LOG.exception('Failed to load request map for handler [{0}]: {1} '.format(utility['path'], str(e)))
                 continue
                     
         # All template maps constructed
-        return valid(LOG.info('Constructed API utility maps'))
+        return LENSE.VALID(LENSE.LOG.info('Constructed API handler maps'))
         
     def handler(self):
         """
-        Main method for constructing and returning the utility map.
+        Main method for constructing and returning the handler map.
         
         @return valid|invalid
         """
@@ -466,15 +338,15 @@ class UtilityMapper(object):
         
         # Request path missing
         if not self.path:
-            return invalid(JSONError(error='Missing request path', status=400).response())
+            return LENSE.INVALID(JSONError(error='Missing request path', status=400).response())
         
         # Invalid request path
         if not self.path in self.map:
-            return invalid(JSONError(error='Unsupported request path: {0}'.format(self.path), status=400).response())
+            return LENSE.INVALID(JSONError(error='Unsupported request path: {0}'.format(self.path), status=400).response())
         
         # Verify the request method
         if self.method != self.map[self.path]['method']:
-            return invalid(JSONError(error='Unsupported request method "{0}" for path "{1}"'.format(self.method, self.path), status=400).response())
+            return LENSE.INVALID(JSONError(error='Unsupported request method "{0}" for path "{1}"'.format(self.method, self.path), status=400).response())
         
         # Get the API module, class handler, and name
         self.handler_obj = {
@@ -485,7 +357,7 @@ class UtilityMapper(object):
             'api_map':   self.map[self.path]['json'],
             'api_anon':  self.map[self.path]['anon']
         }
-        LOG.info('Parsed handler object for API utility "{0}": {1}'.format(self.path, self.handler_obj))
+        LENSE.LOG.info('Parsed handler object for API handler "{0}": {1}'.format(self.path, self.handler_obj))
         
         # Return the handler module path
-        return valid(self.handler_obj)
+        return LENSE.VALID(self.handler_obj)

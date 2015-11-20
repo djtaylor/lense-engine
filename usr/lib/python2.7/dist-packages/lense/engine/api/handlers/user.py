@@ -3,10 +3,11 @@ import re
 # Lense Libraries
 from lense.common.http import HTTP_GET
 from lense.common.vars import G_ADMIN, U_ADMIN
+from lense.engine.api.handlers import RequestHandler
 from lense.common.utils import valid, invalid, rstring
 from lense.common.objects.user.models import APIUser, APIUserKeys
 
-class User_Delete:
+class User_Delete(RequestHandler):
     """
     API class used to handle deleting a user account.
     """
@@ -41,7 +42,7 @@ class User_Delete:
             'username': self.user
         })
 
-class User_Enable:
+class User_Enable(RequestHandler):
     """
     API class used to handle enabling a user account.
     """
@@ -78,7 +79,7 @@ class User_Enable:
             'username': self.user
         })
 
-class User_Disable:
+class User_Disable(RequestHandler):
     """
     API class used to handle disabling a user account.
     """
@@ -115,7 +116,7 @@ class User_Disable:
             'username': self.user
         })
 
-class User_ResetPassword:
+class User_ResetPassword(RequestHandler):
     """
     API class used to handle resetting a user's password.
     """
@@ -172,7 +173,7 @@ class User_ResetPassword:
         except Exception as e:
             return invalid(self.api.log.error('Failed to send password reset confirmation: {0}'.format(str(e))))
 
-class User_Create:
+class User_Create(RequestHandler):
     """
     API class designed to create a new user account.
     """
@@ -290,7 +291,7 @@ class User_Create:
             'api_key':    api_key
         })
 
-class User_Get:
+class User_Get(RequestHandler):
     """
     API class designed to retrieve the details of a single user, or a list of all user
     details.

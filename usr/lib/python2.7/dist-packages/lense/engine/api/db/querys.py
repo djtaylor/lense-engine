@@ -6,9 +6,10 @@ from copy import copy
 from django.db import models
 
 # Lense Libraries
-from lense.common import config
-from lense.common import logger
-from lense.engine.api.objects.manager import ObjectsManager
+from lense.common import LenseCommon
+
+# Lense Common
+LENSE = LenseCommon('ENGINE')
 
 class APIExtractor(object):
     """
@@ -29,7 +30,7 @@ class APIExtractor(object):
         """
         Worker method for retrieving API objects.
         """
-        return self._objects.get(obj_type=obj_type, obj_id=obj_id, cache=self._cache, filters=self._filters, values=self._values)
+        return LENSE.OBJECTS.get(obj_type=obj_type, obj_id=obj_id, cache=self._cache, filters=self._filters, values=self._values)
     
     def values(self, values=None):
         """
