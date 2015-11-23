@@ -9,7 +9,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 # Lense Libraries
 from lense import MODULE_ROOT
 from lense.engine.api.handlers import RequestHandler
-from lense.common.objects.utility.models import Utilities
+from lense.common.objects.handler.models import Handlers
 from lense.common.objects.acl.models import ACLKeys, ACLObjects, ACLGlobalAccess, ACLObjectAccess
 
 class ACLObjects_Delete(RequestHandler):
@@ -279,28 +279,28 @@ class ACL_Update(RequestHandler):
         except Exception as e:
             return self.invalid(self.api.log.exception('Failed to update details for ACL [{0}]: {1}'.format(self.acl, str(e))))
         
-        # If updating ACL utilities
-        if 'utilities' in self.api.data:
-            utilities     = self.api.data['utilities']
+        # If updating ACL handlers
+        if 'handlers' in self.api.data:
+            handlers = self.api.data['handlers']
             
-            # Get all utilities
-            util_all = list(Utilities.objects.all().values())
+            # Get all handlers
+            handler_all = list(Handlers.objects.all().values())
             
             # Only support one object type per ACL object access definition
-            if 'object' in utilities:
+            if 'object' in handlers:
                 obj_last = None
-                for util in util_all:
-                    if (util['uuid'] in utilities['object']) and (util['object']):
-                        if (obj_last == None) or (obj_last == util['object']):
-                            obj_last = util['object']
+                for handler in handler_all:
+                    if (handler['uuid'] in handlers['object']) and (handler['object']):
+                        if (obj_last == None) or (obj_last == handler['object']):
+                            obj_last = handler['object']
                         else:
-                            return self.invalid('Object type mismatch <{0} -> {1}>, ACLs only support one object type per definition.'.format(obj_last, util['object']))
+                            return self.invalid('Object type mismatch <{0} -> {1}>, ACLs only support one object type per definition.'.format(obj_last, handler['object']))
             
             # Get the current ACL object
             acl_obj = ACLKeys.objects.get(uuid=self.acl)
             
-            # Update ACL utilities
-            for acl_type, acl_util in utilities.iteritems():
+            # Update ACL handlers
+            for acl_type, acl_handler in handlers.iteritems():
                 self.api.log.info('Updating access type [{0}] for ACL [{1}]'.format(acl_type, self.acl))
                 try:
                     
@@ -311,10 +311,10 @@ class ACL_Update(RequestHandler):
                         ACLGlobalAccess.objects.filter(acl=self.acl).delete()
                         
                         # Put in new definitions
-                        for util in acl_util:
+                        for handler in acl_handler:
                             ACLGlobalAccess(
                                 acl     = acl_obj,
-                                utility = Utilities.objects.get(uuid=util)
+                                handler = Handlers.objects.get(uuid=handler)
                             ).save()
                     
                     # Object
@@ -324,18 +324,18 @@ class ACL_Update(RequestHandler):
                         ACLObjectAccess.objects.filter(acl=self.acl).delete()
                         
                         # Put in new definitions
-                        for util in acl_util:
+                        for handler in acl_handler:
                             ACLObjectAccess(
                                 acl     = acl_obj,
-                                utility = Utilities.objects.get(uuid=util)
+                                handler = Handlers.objects.get(uuid=handler)
                             ).save()
                     
-                    # All utilities updated
-                    self.api.log.info('Updated all utilities for ACL [{0}]'.format(self.acl))
+                    # All handlers updated
+                    self.api.log.info('Updated all handlers for ACL [{0}]'.format(self.acl))
                     
-                # Failed to update utilities
+                # Failed to update handlers
                 except Exception as e:
-                    return self.invalid(self.api.log.exception('Failed to update [{0}] utilities for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
+                    return self.invalid(self.api.log.exception('Failed to update [{0}] handlers for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
         
         # ACL updated
         return self.valid('Succesfully updated ACL')
@@ -388,8 +388,8 @@ class ACL_Create(RequestHandler):
         # Generate a UUID for the ACL
         acl_uuid = str(uuid4())
         
-        # Utilities (not used for now)
-        #utils = self.api.data['utilities']
+        # Handlers (not used for now)
+        #handlers = self.api.data['handlers']
         
         # ACL parameters
         params = {

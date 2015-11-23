@@ -2,7 +2,6 @@ import os
 
 # Lense Libraries
 from lense.commomn import LenseCommon
-from lense.common.vars import DB_ENCRYPT_DIR
 
 # Lense Common
 LENSE            = LenseCommon('ENGINE')
@@ -62,10 +61,10 @@ TEMPLATES = [
 ]
 
 # SMTP backend
-EMAIL_HOST       = LENSE.CONF.email.smtp_host
+EMAIL_HOST = LENSE.CONF.email.smtp_host
 
 # Database encryption keys
-ENCRYPTED_FIELDS_KEYDIR = DB_ENCRYPT_DIR
+ENCRYPTED_FIELDS_KEYDIR = LENSE.CONF.db.encrypt_dir
 
 # Database connections
 DATABASES = {
