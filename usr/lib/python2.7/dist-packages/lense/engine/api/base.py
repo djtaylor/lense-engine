@@ -142,9 +142,6 @@ class APIBase(object):
         # Check if a web socket is making an API call
         self._set_websock()
         
-        # Import the utility classes
-        self._utils()
-        
         # Set the logger object
         self.log = APILogger(self)
         

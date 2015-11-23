@@ -17,10 +17,6 @@ class SocketResponse(object):
     """
     def __init__(self):
         
-        # Configuration / logger
-        self.conf       = config.parse('ENGINE')
-        self.log        = logger.create(__name__, self.conf.engine.log)
-        
         # SocketIO client / web socket parameters
         self.socket_io  = None
         self.web_socket = None

@@ -27,10 +27,10 @@ class ACLAuthObjects(object):
     """
     def __init__(self, user, obj_type, path, method):
         
-        # ACL user object / object type / object utility / cache manager
+        # ACL user object / object type / object handler / cache manager
         self.user      = user
         self.type      = obj_type
-        self.utility   = ACLUtility(path, method).get()
+        self.handler   = ACLHandler(path, method).get()
         
         # Object accessor
         self.obj_def   = get_obj_def(obj_type)
@@ -64,7 +64,7 @@ class ACLAuthObjects(object):
         
     def _check_global_access(self, global_acls):
         """
-        Determine if the user has global access to the utility.
+        Determine if the user has global access to the handler.
         """
         for global_acl in global_acls:
             LENSE.LOG.info('Processing global ACL: {}'.format(str(global_acl)))
@@ -72,25 +72,25 @@ class ACLAuthObjects(object):
             # If access is explicitly denied, try another ACL
             if not global_acl['allowed'] == 'yes': continue
             
-            # Get all supported global utilities for this ACL
-            global_utilities = [x['utility_id'] for x in list(ACLGlobalAccess.objects.filter(acl=global_acl['uuid']).values())]
-            LENSE.LOG.info('Retrieved utilities for ACL "{}": {}'.format(global_acl['acl'], str(global_utilities)))
+            # Get all supported global handlers for this ACL
+            global_handlers = [x['handler_id'] for x in list(ACLGlobalAccess.objects.filter(acl=global_acl['uuid']).values())]
+            LENSE.LOG.info('Retrieved handlers for ACL "{}": {}'.format(global_acl['acl'], str(global_handlers)))
             
-            # If the ACL supports the target utility
-            if self.utility.uuid in global_utilities:
-                LENSE.LOG.info('Global access allowed for utility: cls={}, uuid={}'.format(self.utility.model.cls, self.utility.uuid))
+            # If the ACL supports the target handler
+            if self.handler.uuid in global_handlers:
+                LENSE.LOG.info('Global access allowed for handler: cls={}, uuid={}'.format(self.handler.model.cls, self.handler.uuid))
                 
                 # Merge the object list
                 self._merge_objects(LENSE.OBJECTS.get(self.type, filters=self.filters))
         
     def _check_object_access(self, object_acls, group):
         """
-        Determine if the user has access to specific objects in the utility.
+        Determine if the user has access to specific objects in the handler.
         """
         LENSE.LOG.info('Checking object access: group={}, objects={}'.format(group, str(object_acls)))
         
-        # No utility object association
-        if not self.utility.model.object:
+        # No handler object association
+        if not self.handler.model.object:
             return
         
         # Create an instance of the ACL authorization class
@@ -109,7 +109,7 @@ class ACLAuthObjects(object):
             # Begin constructing a list of accessible objects
             for access_object in list(acl_class.objects.filter(**acl_filter).values()):
                 acl_key = '{}_id'.format(self.obj_def['acl_key'])
-                LENSE.LOG.info('Object access allowed for utility: cls={}, uuid={}, object={}'.format(self.utility.model.cls, self.utility.uuid, str(access_object)))
+                LENSE.LOG.info('Object access allowed for handler: cls={}, uuid={}, object={}'.format(self.handler.model.cls, self.handler.uuid, str(access_object)))
                 
                 # Get the accessible object
                 self._merge_objects(LENSE.OBJECTS.get(self.type, access_object[acl_key], filters=self.filters))
@@ -127,19 +127,19 @@ class ACLAuthObjects(object):
         # Process each group the user is a member of
         for group, acl in self.user.acls.iteritems():
         
-            # Check for global access to the utility
+            # Check for global access to the handler
             self._check_global_access(acl['global'])
         
-            # Check for object level access to the utility
+            # Check for object level access to the handler
             self._check_object_access(acl['object'], group)
         
         # Return the authorized objects
         return self
          
-class ACLUtility(object):
+class ACLHandler(object):
     """
-    Parent class used to construct the ACL attributes for a specific utility. This includes
-    retrieving the utility UUID, and any ACLs that provide access to this specific utility.
+    Parent class used to construct the ACL attributes for a specific handler. This includes
+    retrieving the handler UUID, and any ACLs that provide access to this specific handler.
     """
     def __init__(self, path, method):
         
@@ -151,8 +151,8 @@ class ACLUtility(object):
         self.name   = self.model.name
         self.anon   = self.model.allow_anon
         
-        # Log utility retrieval
-        LENSE.LOG.info('Constructed API utility: name={0}, path={1}, method={2}, obj={3}, uuid={4}'.format(self.name, self.path, self.method, str(self.model), self.uuid))
+        # Log handler retrieval
+        LENSE.LOG.info('Constructed API handl;er: name={0}, path={1}, method={2}, obj={3}, uuid={4}'.format(self.name, self.path, self.method, str(self.model), self.uuid))
         
     def get(self): 
         return self
@@ -211,13 +211,13 @@ class ACLUser(object):
 class ACLGateway(object):
     """
     ACL gateway class used to handle permissions for API requests prior to loading
-    any API utilities. Used after key/token authorization.
+    any API handlers. Used after key/token authorization.
     """
     def __init__(self, request):
         
         # Request object
         self.request       = request
-        self.utility       = ACLUtility(self.request.path, self.request.method).get()
+        self.handler       = ACLHandler(self.request.path, self.request.method).get()
         self.user          = None
         
         # Accessible objects / object key
@@ -244,32 +244,32 @@ class ACLGateway(object):
         
     def _check_global_access(self, global_acls):
         """
-        Determine if the user has global access to the utility.
+        Determine if the user has global access to the handler.
         """
         for global_acl in global_acls:
             
             # If access is explicitly denied, try another ACL
             if not global_acl['allowed'] == 'yes': continue
             
-            # Get all globally accessible utilities for this ACL
-            global_access = [x['utility_id'] for x in list(ACLGlobalAccess.objects.filter(acl=global_acl['uuid']).values())]
+            # Get all globally accessible handlers for this ACL
+            global_access = [x['handler_id'] for x in list(ACLGlobalAccess.objects.filter(acl=global_acl['uuid']).values())]
             
-            # If the ACL supports the target utility
-            if self.utility.uuid in global_access:
-                return LENSE.VALID(LENSE.LOG.info('Global access granted for user [{}] to utility [{}]'.format(self.user.name, self.utility.name)))
+            # If the ACL supports the target handler
+            if self.handler.uuid in global_access:
+                return LENSE.VALID(LENSE.LOG.info('Global access granted for user [{}] to handler [{}]'.format(self.user.name, self.handler.name)))
         
         # Global access denied
-        return LENSE.INVALID('Global access denied for user [{}] to utility [{}]'.format(self.user.name, self.utility.name))
+        return LENSE.INVALID('Global access denied for user [{}] to handler [{}]'.format(self.user.name, self.handler.name))
     
     def _check_object_access(self, object_acls, group):
         """
-        Determine if the user has object level access to the utility.
+        Determine if the user has object level access to the handler.
         """
         
-        # Make sure the utility has an object type association
-        if not self.utility.model.object:
+        # Make sure the handler has an object type association
+        if not self.handler.model.object:
             return LENSE.INVALID('')
-        object_type = self.utility.model.object
+        object_type = self.handler.model.object
         
         # Get the object authorization class
         obj_def   = get_obj_def(object_type)
@@ -277,7 +277,7 @@ class ACLGateway(object):
         acl_class = getattr(acl_mod, obj_def['acl_cls'])
             
         # Utility object key and target object value
-        self.obj_key = self.utility.model.object_key
+        self.obj_key = self.handler.model.object_key
         
         # Specific object key found
         if (self.request.data) and (self.obj_key in self.request.data):
@@ -295,10 +295,10 @@ class ACLGateway(object):
             
                 # Check if the user has access to this object
                 if acl_class.objects.filter(**filter).count():
-                    return LENSE.VALID(LENSE.LOG.info('Object level access granted for user [{}] to utility [{}] for object [{}:{}]'.format(self.user.name, self.utility.path, self.utility.model.object, tgt_obj)))
+                    return LENSE.VALID(LENSE.LOG.info('Object level access granted for user [{}] to handler [{}] for object [{}:{}]'.format(self.user.name, self.handler.path, self.handler.model.object, tgt_obj)))
         
             # Access denied
-            return LENSE.INVALID(' for object <{}:{}>'.format(self.utility.model.object, tgt_obj))
+            return LENSE.INVALID(' for object <{}:{}>'.format(self.handler.model.object, tgt_obj))
         
         # User not accessing a specific object
         else:
@@ -307,7 +307,7 @@ class ACLGateway(object):
     def _check_access(self):
         """
         Make sure the user has access to the selected resource. Not sure how I want to handle a user 
-        having multiple ACLs that provided access to the same utility. This raises the question on 
+        having multiple ACLs that provided access to the same handler. This raises the question on 
         what to do if one ACL is allowed, and another is disabled. I can either explicitly deny access 
         if any ACL is found with a disabled flag, or just skip the ACL and look for an enabled one. 
         For now I am going to do the latter.
@@ -346,7 +346,7 @@ class ACLGateway(object):
         
         # Access denied
         else:
-            err_msg = 'Access denied to utility [{}]{}'.format(self.utility.name, obj_error)
+            err_msg = 'Access denied to handler [{}]{}'.format(self.handler.name, obj_error)
             
             # Log the error message
             LENSE.LOG.error(err_msg)
@@ -357,12 +357,12 @@ class ACLGateway(object):
     def _authorize(self):
         """
         Worker method used to make sure the API user has the appropriate permissions
-        required to access the utility.
+        required to access the handler.
         """
         
-        # Permit access to utilities which allow anonymous access
-        if self.utility.anon:
-            LENSE.LOG.info('Utility "{0}" allows anonymous access, approving request'.format(self.utility.name))
+        # Permit access to handlers which allow anonymous access
+        if self.handler.anon:
+            LENSE.LOG.info('Utility "{0}" allows anonymous access, approving request'.format(self.handler.name))
             return self._set_authorization(True)
         
         # Request is not anonymous, construct the user
@@ -370,22 +370,22 @@ class ACLGateway(object):
             self.user = ACLUser(self.request.user).get()
         
         # Permit access to <auth/get> for all API users with a valid API key
-        if self.utility.path == PATH.GET_TOKEN:
+        if self.handler.path == PATH.GET_TOKEN:
             return self._set_authorization(True)
             
         # Log the initial ACL authorization request
-        LENSE.LOG.info('Running ACL gateway validation: name={0}, path={1}, method={2}, user={3}'.format(self.utility.name, self.utility.path, self.utility.method, self.user.name))
+        LENSE.LOG.info('Running ACL gateway validation: name={0}, path={1}, method={2}, user={3}'.format(self.handler.name, self.handler.path, self.handler.method, self.user.name))
         
         # If the user is not a member of any groups (and not a host account type)
         if not self.user.groups and self.user.type == T_USER:
-            return self._set_authorization(False, LENSE.LOG.error('User [{}] is not a member of any groups, membership required for utility authorization'.format(self.user.name)))
+            return self._set_authorization(False, LENSE.LOG.error('User [{}] is not a member of any groups, membership required for handler authorization'.format(self.user.name)))
         
         # Check if the account has access
         try:
             access_status = self._check_access()
             if not access_status['valid']:
                 return self._set_authorization(False, access_status['content'])
-            LENSE.LOG.info('ACL gateway authorization success: name={0}, path={1}, method={2}, user={3}'.format(self.utility.name, self.utility.path, self.utility.method, self.user.name))
+            LENSE.LOG.info('ACL gateway authorization success: name={0}, path={1}, method={2}, user={3}'.format(self.handler.name, self.handler.path, self.handler.method, self.user.name))
             
             # Account has access
             return self._set_authorization(True)
@@ -412,7 +412,7 @@ class ACLGateway(object):
         API user.
         
         TODO: Need to filter out ACLs when doing the ACL object class to only include ACLs that apply for the
-        current utility.
+        current handler.
         
         @param obj_type: The type of objects to retrieve
         @type  obj_type: str
@@ -428,6 +428,6 @@ class ACLGateway(object):
         return ACLAuthObjects(
             user     = self.user, 
             obj_type = obj_type, 
-            path     = getattr(self.utility, 'path', path), 
-            method   = getattr(self.utility, 'method', method)
+            path     = getattr(self.handler, 'path', path), 
+            method   = getattr(self.handler, 'method', method)
         ).get(filter)

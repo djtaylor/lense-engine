@@ -151,7 +151,6 @@ class RequestManager(object):
         self.api_path    = self.handler_obj['content']['api_path']
         self.api_mod     = self.handler_obj['content']['api_mod']
         self.api_class   = self.handler_obj['content']['api_class']
-        self.api_utils   = self.handler_obj['content']['api_utils']
         self.api_anon    = self.handler_obj['content']['api_anon']
     
     def handler(self):
@@ -196,8 +195,7 @@ class RequestManager(object):
             
             # Create an instance of the APIBase and run the constructor
             api_obj = APIBase(
-                request  = self.request, 
-                utils    = self.api_utils,
+                request  = self.request,
                 acl      = acl_gateway 
             ).construct()
             
@@ -352,7 +350,6 @@ class RequestMapper(object):
             'api_mod':   self.map[self.path]['module'],
             'api_class': self.map[self.path]['class'],
             'api_path':  self.map[self.path]['path'],
-            'api_utils': self.map[self.path]['utils'],
             'api_map':   self.map[self.path]['json'],
             'api_anon':  self.map[self.path]['anon']
         }

@@ -74,7 +74,6 @@ class Handler_Create(RequestHandler):
             'method':     self.api.data['method'],
             'mod':        self.api.data['mod'],
             'cls':        self.api.data['cls'],
-            'utils':      json.dumps(self.api.data.get('utils', [])),
             'protected':  self.api.data['protected'],
             'enabled':    self.api.data['enabled'],
             'object':     self.api.data.get('object'),
@@ -127,32 +126,22 @@ class Handler_Save(RequestHandler):
         if not Handlers.objects.filter(uuid=self.handler).count():
             return invalid(self.api.log.error('Could not save handler [{0}], not found in database'.format(self.handler)))
 
-        # Validate the handler attributes
-        #util_status = self.api.util.GatewayUtilitiesValidate.launch()
-        #if not util_status['valid']:
-        #    return util_status
-
         # Get the handler details
-        util_row = Handlers.objects.filter(uuid=self.handler).values()[0]
+        handler = Handlers.objects.filter(uuid=self.handler).values()[0]
     
         # Update parameters
         params = {
-            'path': self.api.data.get('path', util_row['path']),
-            'method': self.api.data.get('method', util_row['method']),
-            'mod': self.api.data.get('mod', util_row['mod']),
-            'cls': self.api.data.get('cls', util_row['cls']),
-            'utils': self.api.data.get('utils', util_row['utils']),
-            'rmap': self.api.data.get('rmap', util_row['rmap']),
-            'enabled': self.api.data.get('enabled', util_row['enabled']),
-            'protected': self.api.data.get('protected', util_row['protected']),
-            'object': self.api.data.get('object', util_row['object']),
-            'object_key': self.api.data.get('object_key', util_row['object_key']),
-            'allow_anon': self.api.data.get('allow_anon', util_row['allow_anon'])
+            'path': self.api.data.get('path', handler['path']),
+            'method': self.api.data.get('method', handler['method']),
+            'mod': self.api.data.get('mod', handler['mod']),
+            'cls': self.api.data.get('cls', handler['cls']),
+            'rmap': self.api.data.get('rmap', handler['rmap']),
+            'enabled': self.api.data.get('enabled', handler['enabled']),
+            'protected': self.api.data.get('protected', handler['protected']),
+            'object': self.api.data.get('object', handler['object']),
+            'object_key': self.api.data.get('object_key', handler['object_key']),
+            'allow_anon': self.api.data.get('allow_anon', handler['allow_anon'])
         }
-    
-        # Make sure utilities value is a string
-        if isinstance(params['utils'], list):
-            params['utils'] = json.dumps(params['utils'])
     
         # Make sure the request map value is a string'
         if isinstance(params['rmap'], dict):
@@ -184,33 +173,24 @@ class Handler_Validate(RequestHandler):
         Validate the handler attributes.
         """
     
-        # Get all utilities
-        util_all = Handlers.objects.all().values()
-    
         # ACL objects
         acl_objects  = list(ACLObjects.objects.all().values())
     
-        # Construct available external utilities
-        util_ext = []
-        for util in util_all:
-            util_ext.append('%s.%s' % (util['mod'], util['cls']))
-    
         # Get the handler details
-        util_row = Handlers.objects.filter(uuid=self.handler).values()[0]
+        handler = Handlers.objects.filter(uuid=self.handler).values()[0]
     
         # Default values
         default = {
-            'path': self.api.data.get('path', util_row['path']),
-            'method': self.api.data.get('method', util_row['method']),
-            'mod': self.api.data.get('mod', util_row['mod']),
-            'cls': self.api.data.get('cls', util_row['cls']),
-            'utils': self.api.data.get('utils', util_row['utils']),
-            'rmap': self.api.data.get('rmap', util_row['rmap']),
-            'enabled': self.api.data.get('enabled', util_row['enabled']),
-            'protected': self.api.data.get('protected', util_row['protected']),
-            'object': self.api.data.get('object', util_row['object']),
-            'object_key': self.api.data.get('object_key', util_row['object_key']),
-            'allow_anon': self.api.data.get('allow_anon', util_row['allow_anon'])
+            'path': self.api.data.get('path', handler['path']),
+            'method': self.api.data.get('method', handler['method']),
+            'mod': self.api.data.get('mod', handler['mod']),
+            'cls': self.api.data.get('cls', handler['cls']),
+            'rmap': self.api.data.get('rmap', handler['rmap']),
+            'enabled': self.api.data.get('enabled', handler['enabled']),
+            'protected': self.api.data.get('protected', handler['protected']),
+            'object': self.api.data.get('object', handler['object']),
+            'object_key': self.api.data.get('object_key', handler['object_key']),
+            'allow_anon': self.api.data.get('allow_anon', handler['allow_anon'])
         }
     
         # Make sure the path string is valid
@@ -245,11 +225,6 @@ class Handler_Validate(RequestHandler):
         mod_status = mod_has_class(mod, cls)
         if not mod_status['valid']:
             return mod_status
-    
-        # Validate external utilities
-        for util in utils:
-            if not util in util_ext:
-                return invalid('Failed to validate handler [{0}], could not locate external handler class [{1}]'.format(self.handler, util))
         
         # Utility validated
         return valid()
@@ -264,9 +239,9 @@ class Handler_Validate(RequestHandler):
             return invalid(self.api.log.error('Could not validate handler [{0}], not found in database'.format(self.handler)))
 
         # Validate the handler attributes
-        util_status = self._validate()
-        if not util_status['valid']:
-            return util_status
+        handler = self._validate()
+        if not handler['valid']:
+            return handler
         
         # Utility is valid
         return valid('Utility validation succeeded.')
@@ -291,10 +266,10 @@ class Handler_Close(RequestHandler):
             return invalid(self.api.log.error('Could not check in handler [{0}], not found in database'.format(self.handler)))
         
         # Get the handler details row
-        util_row = Handlers.objects.filter(uuid=self.handler).values()[0]
+        handler = Handlers.objects.filter(uuid=self.handler).values()[0]
         
         # Check if the handler is already checked out
-        if util_row['locked'] == False:
+        if handler['locked'] == False:
             return invalid(self.api.log.error('Could not check in handler [{0}], already checked in'.format(self.handler)))
         
         # Unlock the handler
@@ -331,18 +306,18 @@ class Handler_Open(RequestHandler):
             return invalid(self.api.log.error('Could not open handler [{0}] for editing, not found in database'.format(self.handler)))
         
         # Get the handler details row
-        util_row = Handlers.objects.filter(uuid=self.handler).values()[0]
+        handler = Handlers.objects.filter(uuid=self.handler).values()[0]
         
         # Check if the handler is locked
-        if util_row['locked'] == True:
-            self.api.log.info('Utility [{0}] already checked out by user [{1}]'.format(self.handler, util_row['locked_by']))
+        if handler['locked'] == True:
+            self.api.log.info('Utility [{0}] already checked out by user [{1}]'.format(self.handler, handler['locked_by']))
             
             # If the handler is checked out by the current user
-            if util_row['locked_by'] == self.api.user:
-                self.api.log.info('Utility checkout request OK, requestor [{0}] is the same as the locking user [{1}]'.format(self.api.user, util_row['locked_by']))
+            if handler['locked_by'] == self.api.user:
+                self.api.log.info('Utility checkout request OK, requestor [{0}] is the same as the locking user [{1}]'.format(self.api.user, handler['locked_by']))
                 return valid('Utility already checked out by the current user')
             else:
-                return invalid(self.api.log.error('Could not open handler [{0}] for editing, already checked out by {1}'.format(self.handler, util_row['locked_by'])))
+                return invalid(self.api.log.error('Could not open handler [{0}] for editing, already checked out by {1}'.format(self.handler, handler['locked_by'])))
     
         # Set the locking user
         locked_by = self.api.user
