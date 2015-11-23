@@ -17,7 +17,7 @@ from lense.engine.api.auth.key import APIKey
 from lense.engine.api.auth.acl import ACLGateway
 from lense.engine.api.auth.token import APIToken
 from lense.common.objects.user.models import APIUser
-from lense.common.objects.utility.models import Utilities
+from lense.common.objects.handler.models import Handlers
 from lense.engine.api.handlers.stats import log_request_stats
 from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
 
@@ -289,11 +289,11 @@ class RequestMapper(object):
         """
         Load all handler definitions.
         """
-        for utility in list(Utilities.objects.all().values()):
+        for handler in list(Handlers.objects.all().values()):
             
             # Try to load the request map
             try:
-                util_rmap = json.loads(utility['rmap'])
+                util_rmap = json.loads(handler['rmap'])
             
                 # Map base object
                 rmap_base = {
@@ -301,26 +301,25 @@ class RequestMapper(object):
                 }
                 
                 # Map to the request path and method
-                if (utility['path'] == self.path) and (utility['method'] == self.method):
+                if (handler['path'] == self.path) and (handler['method'] == self.method):
                 
                     # Merge the web socket request validator
                     self._merge_socket(rmap_base)
                 
                     # Load the endpoint request handler module string
-                    self.map[utility['path']] = {
-                        'module': utility['mod'],
-                        'class':  utility['cls'],
-                        'path':   utility['path'],
-                        'desc':   utility['desc'],
-                        'method': utility['method'],
-                        'utils':  None if not utility['utils'] else json.loads(utility['utils']),
-                        'anon':   False if not utility['allow_anon'] else utility['allow_anon'],
+                    self.map[handler['path']] = {
+                        'module': handler['mod'],
+                        'class':  handler['cls'],
+                        'path':   handler['path'],
+                        'desc':   handler['desc'],
+                        'method': handler['method'],
+                        'anon':   False if not handler['allow_anon'] else handler['allow_anon'],
                         'json':   rmap_base
                     }
             
             # Error constructing request map, skip to next handler map
             except Exception as e:
-                LENSE.LOG.exception('Failed to load request map for handler [{0}]: {1} '.format(utility['path'], str(e)))
+                LENSE.LOG.exception('Failed to load request map for handler [{0}]: {1} '.format(handler['path'], str(e)))
                 continue
                     
         # All template maps constructed

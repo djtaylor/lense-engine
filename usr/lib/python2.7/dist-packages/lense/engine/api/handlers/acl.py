@@ -10,6 +10,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from lense import MODULE_ROOT
 from lense.engine.api.handlers import RequestHandler
 from lense.common.objects.handler.models import Handlers
+from lense.common.utils import valid, invalid, mod_has_class
 from lense.common.objects.acl.models import ACLKeys, ACLObjects, ACLGlobalAccess, ACLObjectAccess
 
 class ACLObjects_Delete(RequestHandler):
@@ -29,14 +30,14 @@ class ACLObjects_Delete(RequestHandler):
         
         # If the ACL object doesn't exist
         if not ACLObjects.objects.filter(type=self.type).count():
-            return self.invalid('Cannot delete ACL object [{0}], not found in database'.format(self.type))
+            return invalid('Cannot delete ACL object [{0}], not found in database'.format(self.type))
         
         # Get the ACL object definition
         acl_object = ACLObjects.objects.filter(type=self.type).values(detailed=True)[0]
         
         # If the ACL object has any assigned object
         if acl_object['objects']:
-            return self.invalid('Cannot delete ACL object [{0}] definition, contains [{1}] child objects'.format(self.type, str(len(acl_object['objects']))))
+            return invalid('Cannot delete ACL object [{0}] definition, contains [{1}] child objects'.format(self.type, str(len(acl_object['objects']))))
 
         # Delete the ACL object definition
         try:
@@ -44,10 +45,10 @@ class ACLObjects_Delete(RequestHandler):
             
         # Critical error when deleting ACL object
         except Exception as e:
-            return self.invalid(self.api.log.exception('Failed to delete ACL object [{0}] definition: {1}'.format(self.type, str(e))))
+            return invalid(self.api.log.exception('Failed to delete ACL object [{0}] definition: {1}'.format(self.type, str(e))))
 
         # Return the response
-        return self.valid('Successfully deleted ACL object definition', {
+        return valid('Successfully deleted ACL object definition', {
             'type': self.type
         })
 
@@ -89,12 +90,12 @@ class ACLObjects_Create(RequestHandler):
         
         # Make sure the type definition is not already used
         if ACLObjects.objects.filter(type=self.attr['type']).count():
-            return self.invalid('Failed to create ACL object type [{0}], already defined'.format(self.attr['type']))
+            return invalid('Failed to create ACL object type [{0}], already defined'.format(self.attr['type']))
         
         # Check the ACL and object module/class definitions
         for key,status in {
-            'acl': self.mod_has_class(self.attr['acl_mod'], self.attr['acl_cls'], no_launch=True),
-            'obj': self.mod_has_class(self.attr['obj_mod'], self.attr['obj_cls'], no_launch=True)
+            'acl': mod_has_class(self.attr['acl_mod'], self.attr['acl_cls'], no_launch=True),
+            'obj': mod_has_class(self.attr['obj_mod'], self.attr['obj_cls'], no_launch=True)
         }.iteritems():
             if not status['valid']:
                 return status
@@ -105,14 +106,14 @@ class ACLObjects_Create(RequestHandler):
         # If a default ACL UUID is supplied
         if ('def_acl' in self.api.data):
             if not ACLKeys.objects.filter(uuid=self.attr['def_acl']).count():
-                return self.invalid('Failed to create ACL object type [{0}], default ACL [{1}] not found'.format(self.attr['type'], self.attr['def_acl']))
+                return invalid('Failed to create ACL object type [{0}], default ACL [{1}] not found'.format(self.attr['type'], self.attr['def_acl']))
         
             # Get the default ACL object
             self.attr['def_acl'] = ACLKeys.objects.get(uuid=self.api.data['def_acl'])
             
             # Make sure the ACL has object type authentication enabled
             if not self.attr['def_acl'].type_object:
-                return self.invalid('Failed to create ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.attr['type'], self.attr['def_acl']['uuid']))
+                return invalid('Failed to create ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.attr['type'], self.attr['def_acl']['uuid']))
         
         # Create the ACL object definition
         try:
@@ -120,10 +121,10 @@ class ACLObjects_Create(RequestHandler):
             
         # Critical error when saving ACL object definition
         except Exception as e:
-            return self.invalid(self.api.log.exception('Failed to create ACL object type [{0}]: {1}'.format(self.attr['type'], str(e))))
+            return invalid(self.api.log.exception('Failed to create ACL object type [{0}]: {1}'.format(self.attr['type'], str(e))))
         
         # Return the response
-        return self.valid('Successfully created ACL object definition', {
+        return valid('Successfully created ACL object definition', {
             'type': self.attr['type'],
             'uuid': self.attr['uuid'],
             'name': self.attr['name']
@@ -146,7 +147,7 @@ class ACLObjects_Update(RequestHandler):
         
         # Make sure the object definition exists
         if not ACLObjects.objects.filter(type=self.type).count():
-            return self.invalid('Failed to update ACL object, type definition [{0}] not found'.format(self.type))
+            return invalid('Failed to update ACL object, type definition [{0}] not found'.format(self.type))
         
         # Get the existing ACL object definition
         acl_obj = ACLObjects.objects.filter(type=self.type).values()[0]
@@ -156,7 +157,7 @@ class ACLObjects_Update(RequestHandler):
         acl_cls = acl_obj['acl_cls'] if not ('acl_cls' in self.api.data) else self.api.data['acl_cls']
         
         # Make sure the module/class combination is valid
-        acl_mod_status = self.mod_has_class(acl_mod, acl_cls, no_launch=True)
+        acl_mod_status = mod_has_class(acl_mod, acl_cls, no_launch=True)
         if not acl_mod_status['valid']:
             return acl_mod_status
         
@@ -165,7 +166,7 @@ class ACLObjects_Update(RequestHandler):
         obj_cls = acl_obj['obj_cls'] if not ('obj_cls' in self.api.data) else self.api.data['obj_cls']
         
         # Make sure the module/class combination is valid
-        obj_mod_status = self.mod_has_class(obj_mod, obj_cls, no_launch=True)
+        obj_mod_status = mod_has_class(obj_mod, obj_cls, no_launch=True)
         if not obj_mod_status['valid']:
             return obj_mod_status
         
@@ -175,14 +176,14 @@ class ACLObjects_Update(RequestHandler):
             
             # Make sure the default ACL exists
             if not ACLKeys.objects.filter(uuid=self.api.data['def_acl']).count():
-                return self.invalid('Failed to update ACL object type [{0}], default ACL [{1}] not found'.format(self.type, self.api.data['def_acl']))
+                return invalid('Failed to update ACL object type [{0}], default ACL [{1}] not found'.format(self.type, self.api.data['def_acl']))
         
             # Get the default ACL object
             def_acl = ACLKeys.objects.get(uuid=self.api.data['def_acl'])
             
             # Make sure the ACL has object type authentication enabled
             if not def_acl.type_object:
-                return self.invalid('Failed to update ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.type, def_acl.uuid))
+                return invalid('Failed to update ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.type, def_acl.uuid))
         
             # Clear the UUID string from the API data
             del self.api.data['def_acl']
@@ -201,10 +202,10 @@ class ACLObjects_Update(RequestHandler):
         
         # Critical error when updating ACL object definition
         except Exception as e:
-            return self.invalid('Failed to update ACL object: {0}'.format(str(e)))
+            return invalid('Failed to update ACL object: {0}'.format(str(e)))
          
         # Successfully updated object
-        return self.valid('Successfully updated ACL object')
+        return valid('Successfully updated ACL object')
 
 class ACLObjects_Get(RequestHandler):
     """
@@ -231,16 +232,16 @@ class ACLObjects_Get(RequestHandler):
             
             # Make sure the object type exists
             if not object_details:
-                return self.invalid('Could not locate ACL object of type [{0}] in the database'.format(self.type))
+                return invalid('Could not locate ACL object of type [{0}] in the database'.format(self.type))
             
             # Return the ACL object
-            return self.valid(object_details[0])
+            return valid(object_details[0])
         
         # Retrieving all ACL object definitions
         else:
             
             # Return ACL object definitions
-            return self.valid(self.objects)
+            return valid(self.objects)
      
 class ACL_Update(RequestHandler):
     """
@@ -259,7 +260,7 @@ class ACL_Update(RequestHandler):
         
         # Make sure the ACL exists
         if not ACLKeys.objects.filter(uuid=self.acl).count():
-            return self.invalid('Failed to update ACL [{0}], not found in database'.format(self.acl))
+            return invalid('Failed to update ACL [{0}], not found in database'.format(self.acl))
         
         # Get the ACL details
         acl_row  = ACLKeys.objects.filter(uuid=self.acl).values()[0]
@@ -277,7 +278,7 @@ class ACL_Update(RequestHandler):
             ACLKeys.objects.filter(uuid=self.acl).update(**params)
             self.api.log.info('Updated properties for ACL [{0}]'.format(self.acl))
         except Exception as e:
-            return self.invalid(self.api.log.exception('Failed to update details for ACL [{0}]: {1}'.format(self.acl, str(e))))
+            return invalid(self.api.log.exception('Failed to update details for ACL [{0}]: {1}'.format(self.acl, str(e))))
         
         # If updating ACL handlers
         if 'handlers' in self.api.data:
@@ -294,7 +295,7 @@ class ACL_Update(RequestHandler):
                         if (obj_last == None) or (obj_last == handler['object']):
                             obj_last = handler['object']
                         else:
-                            return self.invalid('Object type mismatch <{0} -> {1}>, ACLs only support one object type per definition.'.format(obj_last, handler['object']))
+                            return invalid('Object type mismatch <{0} -> {1}>, ACLs only support one object type per definition.'.format(obj_last, handler['object']))
             
             # Get the current ACL object
             acl_obj = ACLKeys.objects.get(uuid=self.acl)
@@ -335,10 +336,10 @@ class ACL_Update(RequestHandler):
                     
                 # Failed to update handlers
                 except Exception as e:
-                    return self.invalid(self.api.log.exception('Failed to update [{0}] handlers for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
+                    return invalid(self.api.log.exception('Failed to update [{0}] handlers for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
         
         # ACL updated
-        return self.valid('Succesfully updated ACL')
+        return valid('Succesfully updated ACL')
         
 class ACL_Delete(RequestHandler):
     """
@@ -357,7 +358,7 @@ class ACL_Delete(RequestHandler):
         
         # Make sure the ACL exists
         if not ACLKeys.objects.filter(uuid=self.acl).count():
-            return self.invalid('Failed to delete ACL [{0}], not found in database'.format(self.acl))
+            return invalid('Failed to delete ACL [{0}], not found in database'.format(self.acl))
         
         # Delete the ACL definition
         try:
@@ -365,13 +366,13 @@ class ACL_Delete(RequestHandler):
             self.api.log.info('Deleted ACL definition [{0}]'.format(self.acl))
             
             # ACL deleted
-            return self.valid('Successfully deleted ACL', {
+            return valid('Successfully deleted ACL', {
                 'uuid': self.acl
             })
             
         # Failed to delete ACL
         except Exception as e:
-            return self.invalid(self.api.log.exception('Failed to delete ACL [{0}]: {1}'.format(self.acl, str(e))))
+            return invalid(self.api.log.exception('Failed to delete ACL [{0}]: {1}'.format(self.acl, str(e))))
         
 class ACL_Create(RequestHandler):
     """
@@ -402,16 +403,16 @@ class ACL_Create(RequestHandler):
         
         # Make sure the ACL doesn't exist
         if ACLKeys.objects.filter(name=params['name']).count():
-            return self.invalid('ACL [{0}] is already defined'.format(acl_name))
+            return invalid('ACL [{0}] is already defined'.format(acl_name))
 
         # Create the ACL key entry
         try:
             ACLKeys(**params).save()
         except Exception as e:
-            return self.invalid(self.api.log.exception('Failed to create ACL definition: {0}'.format(str(e))))
+            return invalid(self.api.log.exception('Failed to create ACL definition: {0}'.format(str(e))))
             
         # Create ACL definition
-        return self.valid('Create new ACL definition', {
+        return valid('Create new ACL definition', {
             'uuid': params['uuid'],
             'name': params['name'],
             'desc': params['desc']
@@ -443,16 +444,15 @@ class ACL_Get(RequestHandler):
                 
                 # If the ACL definition doesn't exist
                 if not acl_definition:
-                    return self.invalid('Could not locate ACL [{0}] in the database'.format(self.acl))
+                    return invalid('Could not locate ACL [{0}] in the database'.format(self.acl))
                 
                 # Return the ACL definition
-                return self.valid(json.dumps(acl_definition[0]))
+                return valid(json.dumps(acl_definition[0]))
             
             # If retrieving all ACL definitions
             else:
-                return self.valid(json.dumps(list(ACLKeys.objects.all().values())))
+                return valid(json.dumps(list(ACLKeys.objects.all().values())))
             
         # Error during ACL construction
         except Exception as e:
-            return self.invalid(self.api.log.exception('Failed to retrieve ACL definition(s): {0}'.format(str(e))))
-
+            return invalid(self.api.log.exception('Failed to retrieve ACL definition(s): {0}'.format(str(e))))

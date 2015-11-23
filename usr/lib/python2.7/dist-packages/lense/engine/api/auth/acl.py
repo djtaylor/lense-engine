@@ -9,7 +9,7 @@ from lense.common import LenseCommon
 from lense.common.http import HEADER, PATH
 from lense.common.objects.user.models import APIUser
 from lense.common.objects.group.models import APIGroups, APIGroupMembers
-from lense.common.objects.utility.models import Utilities
+from lense.common.objects.handler.models import Handlers
 from lense.common.objects.acl.models import ACLGlobalAccess, ACLObjectAccess, ACLKeys, ACLObjects
               
 # Lense Common
@@ -143,10 +143,10 @@ class ACLUtility(object):
     """
     def __init__(self, path, method):
         
-        # Utility name / UUID / object
+        # Handler name / UUID / object
         self.path   = path
         self.method = method
-        self.model  = Utilities.objects.get(path=self.path, method=self.method)
+        self.model  = Handlers.objects.get(path=self.path, method=self.method)
         self.uuid   = self.model.uuid
         self.name   = self.model.name
         self.anon   = self.model.allow_anon

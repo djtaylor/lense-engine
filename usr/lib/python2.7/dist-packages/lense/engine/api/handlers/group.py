@@ -4,8 +4,8 @@ from uuid import uuid4
 
 # Lense Libraries
 from lense.common.http import HTTP_GET
+from lense.common.vars import GROUPS, USERS
 from lense.common.utils import valid, invalid
-from lense.common.vars import G_ADMIN, U_ADMIN
 from lense.engine.api.handlers import RequestHandler
 from lense.common.objects.user.models import APIUser
 from lense.common.objects.group.models import APIGroups, APIGroupMembers
@@ -45,7 +45,7 @@ class GroupMember_Remove(RequestHandler):
             return invalid('Failed to remove user <{0}> from group <{1}>, user not found or access denied'.format(self.user, self.group))
         
         # If trying to remove the default administrator account from the default administrator group
-        if (self.user == U_ADMIN) and (self.group == G_ADMIN):
+        if (self.user == USERS.ADMIN.UUID) and (self.group == GROUPS.ADMIN.UUID):
             return invalid('Cannot remove the default administrator account from the default administrator group')
         
         # Get the group object
@@ -229,7 +229,7 @@ class Group_Update(RequestHandler):
                     if not (self.group_obj.protected == p['protected']):
                         
                         # Cannot disable protected for default administrator group
-                        if (self.group == G_ADMIN) and (p['protected'] != True):
+                        if (self.group == GROUPS.ADMIN.UUID) and (p['protected'] != True):
                             return invalid('Cannot disable the protected flag for the default administrator group')
                         
                         # Update the protected flag

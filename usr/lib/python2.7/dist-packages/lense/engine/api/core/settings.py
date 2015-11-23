@@ -1,7 +1,8 @@
 import os
 
 # Lense Libraries
-from lense.commomn import LenseCommon
+from lense.common import LenseCommon
+from lense.common.vars import DB_ENCRYPT_DIR
 
 # Lense Common
 LENSE            = LenseCommon('ENGINE')
@@ -64,7 +65,7 @@ TEMPLATES = [
 EMAIL_HOST = LENSE.CONF.email.smtp_host
 
 # Database encryption keys
-ENCRYPTED_FIELDS_KEYDIR = LENSE.CONF.db.encrypt_dir
+ENCRYPTED_FIELDS_KEYDIR = DB_ENCRYPT_DIR
 
 # Database connections
 DATABASES = {
@@ -89,7 +90,7 @@ INSTALLED_APPS = (
     'lense.common.objects.acl',
     'lense.common.objects.group',
     'lense.common.objects.user',
-    'lense.common.objects.utility',
+    'lense.common.objects.handler',
     'lense.common.objects.stats'
 )
 

@@ -1,8 +1,8 @@
 import re
 
 # Lense Libraries
+from lense.common.vars import USERS
 from lense.common.http import HTTP_GET
-from lense.common.vars import G_ADMIN, U_ADMIN
 from lense.engine.api.handlers import RequestHandler
 from lense.common.utils import valid, invalid, rstring
 from lense.common.objects.user.models import APIUser, APIUserKeys
@@ -31,7 +31,7 @@ class User_Delete(RequestHandler):
         self.api.log.info('Deleting user account "{0}"'.format(self.user))
         
         # Cannot delete default administrator
-        if self.user == U_ADMIN:
+        if self.user == USERS.ADMIN.UUID:
             return invalid('Cannot delete the default administrator account')
 
         # Delete the user account
@@ -66,7 +66,7 @@ class User_Enable(RequestHandler):
         self.api.log.info('Enabling user account "{0}"'.format(self.user))
 
         # Cannot enable/disable default administrator
-        if self.user == U_ADMIN:
+        if self.user == USERS.ADMIN.UUID:
             return invalid('Cannot enable/disable the default administrator account')
 
         # Get the user object and disable the account
@@ -103,7 +103,7 @@ class User_Disable(RequestHandler):
         self.api.log.info('Disabling user account "{0}"'.format(self.user))
 
         # Cannot enable/disable default administrator
-        if self.user == U_ADMIN:
+        if self.user == USERS.ADMIN.UUID:
             return invalid('Cannot enable/disable the default administrator account')
 
         # Get the user object and disable the account
