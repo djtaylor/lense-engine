@@ -8,15 +8,11 @@ from django.http import HttpResponse
 from django.core.serializers.json import DjangoJSONEncoder
 
 # Lense Libraries
-from lense.common import LenseCommon
 from lense.common.utils import valid
 from lense.engine.api.core.mailer import APIEmail
 from lense.engine.api.core.logger import APILogger
 from lense.engine.api.core.socket import SocketResponse
 from lense.common.objects.manager import ObjectsManager
-
-# Lense Common
-LENSE = LenseCommon('ENGINE')
 
 class APIBase(object):
     """

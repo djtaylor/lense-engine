@@ -5,15 +5,11 @@ import importlib
 from django.contrib.auth.models import User
 
 # Lense Libraries
-from lense.common import LenseCommon
 from lense.common.http import HEADER, PATH
 from lense.common.objects.user.models import APIUser
 from lense.common.objects.group.models import APIGroups, APIGroupMembers
 from lense.common.objects.handler.models import Handlers
 from lense.common.objects.acl.models import ACLGlobalAccess, ACLObjectAccess, ACLKeys, ACLObjects
-              
-# Lense Common
-LENSE = LenseCommon('ENGINE')
          
 def get_obj_def(obj_type):
     """

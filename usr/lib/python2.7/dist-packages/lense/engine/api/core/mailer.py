@@ -1,10 +1,5 @@
 from django.core.mail import send_mail
 
-from lense.common import LenseCommon
-
-# Lense Common
-LENSE = LenseCommon('ENGINE')
-
 class APIEmail(object):
     """
     Wrapper class for handling emails.

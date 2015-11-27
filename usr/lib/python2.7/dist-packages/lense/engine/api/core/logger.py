@@ -5,11 +5,7 @@ from django.http import HttpResponse
 from django.core.serializers.json import DjangoJSONEncoder
 
 # Lense Libraries
-from lense.common import LenseCommon
 from lense.common.http import PATH, MIME_TYPE, JSONError, JSONException
-
-# Lense Common
-LENSE = LenseCommon('ENGINE')
 
 class APILogger(object):
     """

@@ -9,9 +9,7 @@ from sys import getsizeof
 from django.http import HttpResponse, HttpResponseServerError
 
 # Lense Libraries
-from lense.common import LenseCommon
 from lense.common.utils import truncate
-from lense.engine.api.base import APIBase
 from lense.common.utils import JSONTemplate
 from lense.engine.api.auth.key import AuthAPIKey
 from lense.engine.api.auth.acl import ACLGateway
@@ -20,9 +18,6 @@ from lense.common.objects.user.models import APIUser
 from lense.common.objects.handler.models import Handlers
 from lense.engine.api.handlers.stats import log_request_stats
 from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
-
-# Lense Common
-LENSE = LenseCommon('ENGINE')
 
 def dispatch(request):
     """
@@ -147,7 +142,7 @@ class RequestManager(object):
         try:
             
             # Create an instance of the APIBase and run the constructor
-            api_obj = APIBase(request=self.request, acl=acl_gateway).construct()
+            api_obj = LENSE.API.BASE(request=self.request, acl=acl_gateway).construct()
             
             # Make sure the construct ran successfully
             if not api_obj['valid']:

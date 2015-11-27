@@ -4,12 +4,8 @@ import datetime
 from django.conf import settings
 
 # Lense Libraries
-from lense.common import LenseCommon
 from lense.common.utils import rstring
 from lense.common.objects.user.models import APIUser, APIUserTokens
-
-# Lense Common
-LENSE = LenseCommon('ENGINE')
 
 class AuthAPIToken(object):
     """

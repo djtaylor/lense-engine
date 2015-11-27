@@ -3,7 +3,6 @@ from django.test.client import RequestFactory
 
 # Lense Libraries
 from lense.common.http import HTTP_GET
-from lense.engine.api.core.mailer import APIEmail
 from lense.engine.api.core.logger import APILogger
 
 class APIBare(object):
@@ -32,10 +31,9 @@ class APIBare(object):
         self.method  = method
         self.host    = host
         
-        # Request object / data / email handler
+        # Request object / data
         self.request = self._get_request()
         self.data    = data
-        self.email   = APIEmail()
         
         # API logger
         self.log     = APILogger(self)

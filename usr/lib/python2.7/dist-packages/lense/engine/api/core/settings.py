@@ -1,11 +1,7 @@
 import os
 
 # Lense Libraries
-from lense.common import LenseCommon
 from lense.common.vars import DB_ENCRYPT_DIR
-
-# Lense Common
-LENSE            = LenseCommon('ENGINE')
 
 # Project base directory
 BASE_DIR         = os.path.dirname(os.path.dirname(__file__))

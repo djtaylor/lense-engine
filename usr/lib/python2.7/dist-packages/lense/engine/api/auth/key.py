@@ -1,12 +1,8 @@
 import json
 
 # Lense Libraries
-from lense.common import LenseCommon
 from lense.common.utils import valid, invalid, rstring
 from lense.common.objects.user.models import APIUserKeys, APIUser
-
-# Lense Common
-LENSE = LenseCommon('ENGINE')
 
 class AuthAPIKey(object):
     """

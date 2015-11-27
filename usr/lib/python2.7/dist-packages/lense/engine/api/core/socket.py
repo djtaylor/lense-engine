@@ -1,12 +1,6 @@
 import json
 from socketIO_client import SocketIO
 
-# Lense Libraries
-from lense.common import LenseCommon
-
-# Lense Common
-LENSE = LenseCommon('ENGINE')
-
 class SocketResponse(object):
     """
     SocketResponse
