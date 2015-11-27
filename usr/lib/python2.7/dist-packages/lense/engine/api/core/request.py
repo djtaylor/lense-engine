@@ -13,7 +13,7 @@ from lense.common import LenseCommon
 from lense.common.utils import truncate
 from lense.engine.api.base import APIBase
 from lense.common.utils import JSONTemplate
-from lense.engine.api.auth.key import APIKey
+from lense.engine.api.auth.key import AuthAPIKey
 from lense.engine.api.auth.acl import ACLGateway
 from lense.engine.api.auth.token import APIToken
 from lense.common.objects.user.models import APIUser
@@ -69,68 +69,37 @@ class RequestManager(object):
         # API base object
         self.api_base    = None
     
-    def _is_token_request(self):
-        """
-        Convenience method for checking if this is a token request.
-        """
-        if self.request.path == PATH.GET_TOKEN:
-            return True
-        return False
-    
     def _authenticate(self):
         """
         Authenticate the API request.
         """
         
         # Log the user and group attempting to authenticate
-        LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user, repr(self.request.group)))
+        LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user.name, repr(self.request.user.group)))
         
-        # Making a request to an anonymous endpoint
-        if self.api_anon:
-            LENSE.LOG.info('Handling anonymous request')
+        # Anonymous request
+        if self.request.is_anonymous:
+            if not self.api_anon:
+                return JSONError(error='API handler <{0}.{1}> does not support anonymous requests'.format(self.api_mod, self.api_class))
             
-            # Token request
-            if self._is_token_request():
-                auth_status = APIKey().validate(self.request)
-            
-                # API key authentication failed
-                if not auth_status['valid']:
-                    return JSONError(error='Invalid API key', status=401).response()
-                
-                # API key authentication successfull
-                LENSE.LOG.info('API key authentication successfull for user: {0}'.format(self.request.user))
-            
-            # All other anonymous requests
-            else:
-                pass
-            
-        # Making an authenticated request
+        # Token request
+        elif self.request.is_token:    
+            if not LENSE.USER.AUTHENTICATE(self.request.user.name, key=self.request.key, group=self.request.user.group):
+                return JSONError(error=LENSE.USER.AUTH_ERROR, status=401).response()
+            LENSE.LOG.info('API key authentication successfull for user: {0}'.format(self.request.user.name))
+        
+        # Authenticated request
         else:
+            if not LENSE.USER.AUTHENTICATE(self.request.user.name, token=self.request.token, group=self.request.user.group):
+                return JSONError(error=LENSE.USER.AUTH_ERROR, status=401).response()
+            LENSE.LOG.info('API token authentication successfull for user: {0}'.format(self.request.user.name))
             
-            # Invalid API token
-            if not APIToken().validate(self.request):
-                return JSONError(error='Invalid API token', status=401).response()
-            
-            # API token looks good
-            LENSE.LOG.info('API token authentication successfull for user: {0}'.format(self.request.user))
-    
-        # Check for a user account
-        if APIUser.objects.filter(username=self.request.user).count():
-            
-            # If no API group was supplied
-            if not self.request.group:
-                return JSONError(error='Must submit a group UUID using the [api_group] parameter', status=401).response()
-            
-            # Make sure the group exists and the user is a member
-            is_member = False
-            for group in APIUser.objects.filter(username=self.request.user).values()[0]['groups']:
-                if group['uuid'] == self.request.group:
-                    is_member = True
-                    break
-            
-            # If the user is not a member of the group
-            if not is_member:
-                return JSONError(error='API user [{0}] is not a member of group [{1}]'.format(self.request.user, self.request.group), status=401).response()
+            # Perform ACL authorization
+            acl_gateway = ACLGateway(self.request)
+        
+            # If the user is not authorized for this endpoint/object combination
+            if not acl_gateway.authorized:
+                return JSONError(error=acl_gateway.auth_error, status=401).response()
     
     def _validate(self):
         """
@@ -161,43 +130,24 @@ class RequestManager(object):
         # Request received timestamp
         req_received = int(round(time() * 1000))
         
-        # Validate the request
+        # Validate and authenticate the request the request
         try:
-            validate_err = self._validate()
-            if validate_err:
-                return validate_err
+            validate_error = self._validate()
+            auth_error     = self._authenticate()
             
-        # Critical error when validating the request
+        # Critical error during validation / authentication
         except Exception as e:
             return JSONException().response()
         
-        # Authenticate the request
-        try:
-            auth_err     = self._authenticate()
-            if auth_err:
-                return auth_err
-            
-        # Critical error when authenticating the request
-        except Exception as e:
-            return JSONException().response()
-        
-        # Check the request against ACLs unless this is a token request
-        acl_gateway = None
-        if not self._is_token_request():
-            acl_gateway = ACLGateway(self.request)
-        
-            # If the user is not authorized for this endpoint/object combination
-            if not acl_gateway.authorized:
-                return JSONError(error=acl_gateway.auth_error, status=401).response()
+        # Validation / authentication error
+        if validate_error: return validate_error
+        if auth_error: return auth_error
         
         # Set up the API base
         try:
             
             # Create an instance of the APIBase and run the constructor
-            api_obj = APIBase(
-                request  = self.request,
-                acl      = acl_gateway 
-            ).construct()
+            api_obj = APIBase(request=self.request, acl=acl_gateway).construct()
             
             # Make sure the construct ran successfully
             if not api_obj['valid']:
@@ -234,8 +184,8 @@ class RequestManager(object):
             'path': self.request.path,
             'method': self.request.method,
             'client_ip': self.request.client,
-            'client_user': self.request.user,
-            'client_group': self.request.group,
+            'client_user': self.request.user.name,
+            'client_group': self.request.user.group,
             'endpoint': self.request.host,
             'user_agent': self.request.agent,
             'retcode': int(response['code']),

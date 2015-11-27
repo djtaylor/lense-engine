@@ -11,91 +11,82 @@ from lense.common.objects.user.models import APIUser, APIUserTokens
 # Lense Common
 LENSE = LenseCommon('ENGINE')
 
-class APIToken(object):
+class AuthAPIToken(object):
     """
     API class used to assist in validating, creating, and retrieving API authentication tokens.
     """
-    def _get_api_token(self, id):
-        """
-        Retrieve the API token for a user or host account.
-        """
-        
-        # Check if the user exists
-        api_user = APIUser.objects.filter(username=id).count()
-        if not api_user:
-            return LENSE.INVALID('Authentication failed, account [{}] not found'.format(id))
-            
-        # Make sure the user is enabled
-        user_obj = APIUser.objects.get(username=id)
-        if not user_obj.is_active:
-            return LENSE.INVALID('Authentication failed, account [{}] is disabled'.format(id))
-        
-        # Return the API token row
-        api_token_row = list(APIUserTokens.objects.filter(user=user_obj.uuid).values())
-
-        # User has no API key
-        if not api_token_row:
-            return LENSE.VALID(None)
-        return LENSE.VALID(api_token_row[0]['token'])
-    
-    def create(self, id=None):
+    def create(self, user=None):
         """
         Generate a new API authentication token.
+        
+        :param user: The user account to generate the token for
+        :type  user: str
         """
         token_str = rstring(255)
         expires   = datetime.datetime.now() + datetime.timedelta(hours=settings.API_TOKEN_LIFE)
             
         # Create a new API token
-        LENSE.LOG.info('Generating API token for client [{}]'.format(id))
-        db_token  = APIUserTokens(id = None, user=APIUser.objects.get(username=id), token=token_str, expires=expires)
+        LENSE.LOG.info('Generating API token for user: {0}'.format(user))
+        db_token  = APIUserTokens(id = None, user=APIUser.objects.get(username=user), token=token_str, expires=expires)
         db_token.save()
         
         # Return the token
         return token_str
     
-    def get(self, id):
+    def get(self, user):
         """
         Get the API authentication token for a user or host account.
+        
+        :param user: The user account to retrieve the token for
+        :type  user: str
         """
-        LENSE.LOG.info('Retrieving API token for ID [{}]'.format(id))
-            
+        
         # Check if the user exists
-        api_user  = APIUser.objects.filter(username=id).count()
+        if not APIUser.objects.filter(username=user).count():
+            LENSE.LOG.error('API user "{0}" does not exist in database, authentication failed'.format(user))
+            return None
+
+        # Get the user object
+        user_obj = APIUser.objects.get(username=user)
+
+        # Make sure the user is enabled
+        if not user_obj.is_active:
+            LENSE.LOG.error('API user "{0}" is disabled, authentication failed'.format(user))
+            return None
         
-        # Attempt to retrieve an existing token
-        api_token = self._get_api_token(id=id)
+        # Get the API token
+        api_token = list(APIUserKeys.objects.filter(user=user_obj.uuid).values())
+
+        # User has no API key
+        if not api_token:
+            LENSE.LOG.error('API user "{0}" has no token in the database, authentication failed'.format(user))
+            return None
         
-        # If there was an error
-        if not api_token['valid']:
-            return api_token
-        
-        # If the user doesn't have a token yet
-        if api_token['content'] == None:
-            api_token['content'] = self.create(id=id)
-        LENSE.LOG.info('Retrieved token for API ID [{}]: {}'.format(id, api_token['content']))
-        return api_token['content']
+        # Returmn the API token
+        return api_token[0]['api_token']
     
-    def validate(self, request):
+    @staticmethod
+    def validate(user, token):
         """
         Validate the API token in a request from either a user or host account.
-        """
         
-        # Missing API user and/or API token
-        if not hasattr(request, 'user') or not hasattr(request, 'token'):
-            LENSE.LOG.error('Missing required token validation headers [api_user] and/or [api_token]')
+        :param  user: The user account to validate
+        :type   user: str
+        :param token: The incoming API token to validate
+        :type  token: str
+        """
+        api_token = AuthAPIToken()
+        
+        # Get the users API token
+        auth = api_token.get(user)
+        
+        # User has no token
+        if not auth: return False
+        
+        # Invalid API token
+        if not auth == token:
+            LENSE.LOG.error('User "{0}" has submitted and invalid API token'.format(user))
             return False
-        LENSE.LOG.info('Validating API token for ID [{}]: {}'.format(request.user, request.token))
-            
-        # Get the users API token from the database
-        db_token = self._get_api_token(id=request.user)
-
-        # If no API token exists yet
-        if not db_token['valid']:
-            LENSE.LOG.error(db_token['content'])
-            return False
-
-        # Make sure the token is valid
-        if request.token != db_token['content']:
-            LENSE.LOG.error('Client [{}] has submitted an invalid API token'.format(request.user))
-            return False
+        
+        # Token looks OK
         return True
