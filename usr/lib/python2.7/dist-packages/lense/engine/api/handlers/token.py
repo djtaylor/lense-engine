@@ -1,6 +1,6 @@
 # Lense Libraries
 from lense.common.utils import valid, invalid
-from lense.engine.api.auth.token import APIToken
+from lense.engine.api.auth import AuthAPIToken
 from lense.engine.api.handlers import RequestHandler
 
 class Token_Get(RequestHandler):
@@ -17,11 +17,11 @@ class Token_Get(RequestHandler):
         """
         
         # Get the API token
-        api_token = APIToken().get(id=self.api.request.user)
+        api_token = AuthAPIToken.get(self.api.request.user.name)
         
         # Handle token retrieval errors
         if api_token == False:
-            return invalid(self.api.log.error('Error retreiving API token for user: {0}'.format(self.api.request.user)))
+            return invalid(self.api.log.error('Error retreiving API token for user: {0}'.format(self.api.request.user.name)))
         else:
             
             # Return the API token

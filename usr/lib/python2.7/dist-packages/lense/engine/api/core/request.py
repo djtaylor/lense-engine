@@ -1,23 +1,14 @@
-import os
-import re
 import json
-import importlib
 from time import time
 from sys import getsizeof
 
-# Django Libraries
-from django.http import HttpResponse, HttpResponseServerError
-
 # Lense Libraries
-from lense.common.utils import truncate
-from lense.common.utils import JSONTemplate
-from lense.engine.api.auth.key import AuthAPIKey
-from lense.engine.api.auth.acl import ACLGateway
-from lense.engine.api.auth.token import APIToken
-from lense.common.objects.user.models import APIUser
+from lense import import_class
+from lense.common.auth.acl import ACLGateway
 from lense.common.objects.handler.models import Handlers
 from lense.engine.api.handlers.stats import log_request_stats
-from lense.common.http import HEADER, PATH, JSONError, JSONException, HTTP_GET, HTTP_POST, HTTP_PUT
+from lense.common.utils import JSONTemplate, truncate, valid, invalid
+from lense.common.http import HEADER, PATH, HTTP_GET, HTTP_POST, HTTP_PUT
 
 def dispatch(request):
     """
@@ -36,7 +27,7 @@ def dispatch(request):
     
     # Critical server error
     except Exception as e:
-        return JSONException().response()
+        return LENSE.HTTP.exception()
   
 class RequestManager(object):
     """
@@ -50,19 +41,22 @@ class RequestManager(object):
     """
     def __init__(self, request):
         
-        # Construct a request object
-        self.request     = LENSE.REQUEST.SET(request)
+        # Set the request object
+        LENSE.REQUEST.set(request)
     
-        # Request endpoint handler
-        self.handler_obj = None
+        # Request handler
+        self.handler   = None
     
         # API parameters
-        self.api_name    = None
-        self.api_mod     = None
-        self.api_class   = None
+        self.api_name  = None
+        self.api_mod   = None
+        self.api_class = None
     
         # API base object
-        self.api_base    = None
+        self.api_base  = None
+    
+        # ACL gateway
+        self.gateway   = None
     
     def _authenticate(self):
         """
@@ -70,31 +64,31 @@ class RequestManager(object):
         """
         
         # Log the user and group attempting to authenticate
-        LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(self.request.user.name, repr(self.request.user.group)))
+        LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(LENSE.REQUEST.USER.name, repr(LENSE.REQUEST.USER.group)))
         
         # Anonymous request
-        if self.request.is_anonymous:
+        if LENSE.REQUEST.is_anonymous:
             if not self.api_anon:
-                return JSONError(error='API handler <{0}.{1}> does not support anonymous requests'.format(self.api_mod, self.api_class))
+                return LENSE.HTTP.error(error='API handler <{0}.{1}> does not support anonymous requests'.format(self.api_mod, self.api_class))
             
         # Token request
-        elif self.request.is_token:    
-            if not LENSE.USER.AUTHENTICATE(self.request.user.name, key=self.request.key, group=self.request.user.group):
-                return JSONError(error=LENSE.USER.AUTH_ERROR, status=401).response()
-            LENSE.LOG.info('API key authentication successfull for user: {0}'.format(self.request.user.name))
+        elif LENSE.REQUEST.is_token:    
+            if not LENSE.USER.AUTHENTICATE():
+                return LENSE.HTTP.error(error=LENSE.USER.AUTH_ERROR, status=401)
+            LENSE.LOG.info('API key authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
         
         # Authenticated request
         else:
-            if not LENSE.USER.AUTHENTICATE(self.request.user.name, token=self.request.token, group=self.request.user.group):
-                return JSONError(error=LENSE.USER.AUTH_ERROR, status=401).response()
-            LENSE.LOG.info('API token authentication successfull for user: {0}'.format(self.request.user.name))
+            if not LENSE.USER.AUTHENTICATE():
+                return LENSE.HTTP.error(error=LENSE.USER.AUTH_ERROR, status=401)
+            LENSE.LOG.info('API token authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
             
             # Perform ACL authorization
-            acl_gateway = ACLGateway(self.request)
+            self.gateway = ACLGateway(LENSE.REQUEST)
         
             # If the user is not authorized for this endpoint/object combination
-            if not acl_gateway.authorized:
-                return JSONError(error=acl_gateway.auth_error, status=401).response()
+            if not self.gateway.authorized:
+                return LENSE.HTTP.error(error=self.gateway.auth_error, status=401)
     
     def _validate(self):
         """
@@ -102,14 +96,14 @@ class RequestManager(object):
         """
     
         # Map the path to a module, class, and API name
-        self.handler_obj = RequestMapper(self.request.path, self.request.method).handler()
+        self.handler = RequestMapper(self.request.path, self.request.method).handler()
         if not self.handler_obj['valid']:
             return self.handler_obj['content']
     
         # Validate the request data
         request_err  = JSONTemplate(self.handler_obj['content']['api_map']).validate(self.request.data)
         if request_err:
-            return JSONError(error=request_err, status=400).response()
+            return LENSE.HTTP.error(error=request_err, status=400)
     
         # Set the handler objects
         self.api_path    = self.handler_obj['content']['api_path']
@@ -128,11 +122,11 @@ class RequestManager(object):
         # Validate and authenticate the request the request
         try:
             validate_error = self._validate()
-            auth_error     = self._authenticate()
+            auth_error     = None if validate_error else self._authenticate()
             
         # Critical error during validation / authentication
         except Exception as e:
-            return JSONException().response()
+            return LENSE.HTTP.exception()
         
         # Validation / authentication error
         if validate_error: return validate_error
@@ -142,7 +136,7 @@ class RequestManager(object):
         try:
             
             # Create an instance of the APIBase and run the constructor
-            api_obj = LENSE.API.BASE(request=self.request, acl=acl_gateway).construct()
+            api_obj = LENSE.API.BASE(request=self.request, acl=self.gateway)
             
             # Make sure the construct ran successfully
             if not api_obj['valid']:
@@ -153,20 +147,18 @@ class RequestManager(object):
             
         # Failed to setup the APIBase
         except Exception as e:
-            return JSONException().response()
+            return LENSE.HTTP.exception()
             
-        # Load the handler module and class
-        handler_mod   = importlib.import_module(self.api_mod)
-        handler_class = getattr(handler_mod, self.api_class)
-        handler_inst  = handler_class(self.api_base)
+        # Load the handler
+        handler = import_class(self.api_class, self.api_mod, args=[self.api_base])
         
         # Launch the request handler and return the response
         try:
-            response = handler_inst.launch()
+            response = handler.launch()
             
         # Critical error when running handler
         except Exception as e:
-            return JSONException().response()
+            return LENSE.HTTP.exception()
         
         # Close any open SocketIO connections
         self.api_base.socket.disconnect()
@@ -266,7 +258,7 @@ class RequestMapper(object):
                 continue
                     
         # All template maps constructed
-        return LENSE.VALID(LENSE.LOG.info('Constructed API handler maps'))
+        return valid(LENSE.LOG.info('Constructed API handler maps'))
         
     def handler(self):
         """
@@ -280,15 +272,15 @@ class RequestMapper(object):
         
         # Request path missing
         if not self.path:
-            return LENSE.INVALID(JSONError(error='Missing request path', status=400).response())
+            return invalid(LENSE.HTTP.error(error='Missing request path', status=400))
         
         # Invalid request path
         if not self.path in self.map:
-            return LENSE.INVALID(JSONError(error='Unsupported request path: {0}'.format(self.path), status=400).response())
+            return invalid(LENSE.HTTP.error(error='Unsupported request path: {0}'.format(self.path), status=400))
         
         # Verify the request method
         if self.method != self.map[self.path]['method']:
-            return LENSE.INVALID(JSONError(error='Unsupported request method "{0}" for path "{1}"'.format(self.method, self.path), status=400).response())
+            return invalid(LENSE.HTTP.error(error='Unsupported request method "{0}" for path "{1}"'.format(self.method, self.path), status=400))
         
         # Get the API module, class handler, and name
         self.handler_obj = {
@@ -301,4 +293,4 @@ class RequestMapper(object):
         LENSE.LOG.info('Parsed handler object for API handler "{0}": {1}'.format(self.path, self.handler_obj))
         
         # Return the handler module path
-        return LENSE.VALID(self.handler_obj)
+        return valid(self.handler_obj)
