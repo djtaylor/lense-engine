@@ -1,14 +1,12 @@
-import json
 from time import time
 from sys import getsizeof
+from json import loads as json_loads
 
 # Lense Libraries
 from lense import import_class
-from lense.common.auth.acl import ACLGateway
-from lense.common.objects.handler.models import Handlers
+from lense.common.auth.acl import AuthACLGateway
 from lense.engine.api.handlers.stats import log_request_stats
-from lense.common.utils import JSONTemplate, truncate, valid, invalid
-from lense.common.http import HEADER, PATH, HTTP_GET, HTTP_POST, HTTP_PUT
+from lense.common.utils import JSONTemplate, valid, invalid
 
 def dispatch(request):
     """
@@ -23,7 +21,7 @@ def dispatch(request):
     try:
         
         # Return the response from the request manager
-        return RequestManager(request).handler()
+        return RequestManager.dispatch(request)
     
     # Critical server error
     except Exception as e:
@@ -40,18 +38,14 @@ class RequestManager(object):
     by the Django URLs module file. It is initialized with the Django request object.
     """
     def __init__(self, request):
-        
-        # Set the request object
         LENSE.REQUEST.set(request)
-    
-        # Request handler
-        self.handler   = None
     
         # API parameters
         self.api_name  = None
         self.api_mod   = None
         self.api_class = None
-    
+        self.api_anon  = False
+        
         # API base object
         self.api_base  = None
     
@@ -96,22 +90,23 @@ class RequestManager(object):
         """
     
         # Map the path to a module, class, and API name
-        self.handler = RequestMapper(self.request.path, self.request.method).handler()
-        if not self.handler_obj['valid']:
-            return self.handler_obj['content']
+        map = LENSE.API.map_request()
+        
+        # Request map failed
+        if not map['valid']: return map['content']
     
         # Validate the request data
-        request_err  = JSONTemplate(self.handler_obj['content']['api_map']).validate(self.request.data)
+        request_err = JSONTemplate(map['content']['rmap']).validate(LENSE.REQUEST.data)
         if request_err:
             return LENSE.HTTP.error(error=request_err, status=400)
     
         # Set the handler objects
-        self.api_path    = self.handler_obj['content']['api_path']
-        self.api_mod     = self.handler_obj['content']['api_mod']
-        self.api_class   = self.handler_obj['content']['api_class']
-        self.api_anon    = self.handler_obj['content']['api_anon']
+        self.api_path    = map['content']['path']
+        self.api_mod     = map['content']['mod']
+        self.api_class   = map['content']['class']
+        self.api_anon    = map['content']['anon']
     
-    def handler(self):
+    def run(self):
         """
         Worker method for processing the incoming API request.
         """
@@ -168,15 +163,15 @@ class RequestManager(object):
         
         # Log the request
         log_request_stats({
-            'path': self.request.path,
-            'method': self.request.method,
-            'client_ip': self.request.client,
-            'client_user': self.request.user.name,
-            'client_group': self.request.user.group,
-            'endpoint': self.request.host,
-            'user_agent': self.request.agent,
+            'path': LENSE.REQUEST.path,
+            'method': LENSE.REQUEST.method,
+            'client_ip': LENSE.REQUEST.client,
+            'client_user': LENSE.REQUEST.USER.name,
+            'client_group': LENSE.REQUEST.USER.group,
+            'endpoint': LENSE.REQUEST.host,
+            'user_agent': LENSE.REQUEST.agent,
             'retcode': int(response['code']),
-            'req_size': int(self.request.size),
+            'req_size': int(LENSE.REQUEST.size),
             'rsp_size': int(getsizeof(response['content'])),
             'rsp_time_ms': rsp_sent - req_received
         })
@@ -186,111 +181,13 @@ class RequestManager(object):
             return self.api_base.log.success(response['content'], response['data'])
         return self.api_base.log.error(code=response['code'], log_msg=response['content'])
     
-class RequestMapper(object):
-    """
-    Map a request path to an API handler. Loads the handler request details and map.
-    """
-    def __init__(self, path=None, method=None):
+    @staticmethod
+    def dispatch(request):
         """
-        Construct the RequestMapper class.
+        Static method for dispatching the request object to the RequestManager.
         
-        @param path:   The request path
-        @type  path:   str
-        @param method: The request method
-        @type  method: str
+        :param request: The incoming Django request object
+        :type  request: HttpRequest
         """
-        self.path   = path
-        self.method = method
-        self.map    = {}
-        
-    def _merge_socket(self,j):
-        """
-        Merge request parameters for web socket request. Used for handling connections
-        being passed along by the Socket.IO API proxy.
-        """
-        
-        # Load the socket request validator map
-        sv = json.loads(open('{0}/api/base/socket.json'.format(LENSE.PROJECT.TEMPLATES), 'r').read())
-        
-        # Make sure the '_children' key exists
-        if not '_children' in j['root']:
-            j['root']['_children'] = {}
-        
-        # Merge the socket parameters map
-        j['root']['_children']['socket'] = sv
-        j['root']['_optional'].append('socket')
-        
-    def _build_map(self):
-        """
-        Load all handler definitions.
-        """
-        for handler in list(Handlers.objects.all().values()):
-            
-            # Try to load the request map
-            try:
-                util_rmap = json.loads(handler['rmap'])
-            
-                # Map base object
-                rmap_base = {
-                    'root': util_rmap
-                }
-                
-                # Map to the request path and method
-                if (handler['path'] == self.path) and (handler['method'] == self.method):
-                
-                    # Merge the web socket request validator
-                    self._merge_socket(rmap_base)
-                
-                    # Load the endpoint request handler module string
-                    self.map[handler['path']] = {
-                        'module': handler['mod'],
-                        'class':  handler['cls'],
-                        'path':   handler['path'],
-                        'desc':   handler['desc'],
-                        'method': handler['method'],
-                        'anon':   False if not handler['allow_anon'] else handler['allow_anon'],
-                        'json':   rmap_base
-                    }
-            
-            # Error constructing request map, skip to next handler map
-            except Exception as e:
-                LENSE.LOG.exception('Failed to load request map for handler [{0}]: {1} '.format(handler['path'], str(e)))
-                continue
-                    
-        # All template maps constructed
-        return valid(LENSE.LOG.info('Constructed API handler maps'))
-        
-    def handler(self):
-        """
-        Main method for constructing and returning the handler map.
-        
-        @return valid|invalid
-        """
-        map_rsp = self._build_map()
-        if not map_rsp['valid']:
-            return map_rsp
-        
-        # Request path missing
-        if not self.path:
-            return invalid(LENSE.HTTP.error(error='Missing request path', status=400))
-        
-        # Invalid request path
-        if not self.path in self.map:
-            return invalid(LENSE.HTTP.error(error='Unsupported request path: {0}'.format(self.path), status=400))
-        
-        # Verify the request method
-        if self.method != self.map[self.path]['method']:
-            return invalid(LENSE.HTTP.error(error='Unsupported request method "{0}" for path "{1}"'.format(self.method, self.path), status=400))
-        
-        # Get the API module, class handler, and name
-        self.handler_obj = {
-            'api_mod':   self.map[self.path]['module'],
-            'api_class': self.map[self.path]['class'],
-            'api_path':  self.map[self.path]['path'],
-            'api_map':   self.map[self.path]['json'],
-            'api_anon':  self.map[self.path]['anon']
-        }
-        LENSE.LOG.info('Parsed handler object for API handler "{0}": {1}'.format(self.path, self.handler_obj))
-        
-        # Return the handler module path
-        return valid(self.handler_obj)
+        manager = RequestManager(request)
+        return manager.run()
