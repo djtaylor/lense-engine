@@ -39,35 +39,26 @@ class RequestManager(object):
     """
     def __init__(self, request):
         LENSE.REQUEST.set(request)
+        LENSE.API.create_logger()
     
-        # API parameters
-        self.api_name  = None
-        self.api_mod   = None
-        self.api_class = None
-        self.api_anon  = False
-        
-        # API base object
-        self.api_base  = None
-    
-        # ACL gateway
+        # Request map / ACL gateway
+        self.map       = None
         self.gateway   = None
     
     def _authenticate(self):
         """
         Authenticate the API request.
         """
-        
-        # Log the user and group attempting to authenticate
         LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(LENSE.REQUEST.USER.name, repr(LENSE.REQUEST.USER.group)))
         
         # Anonymous request
         if LENSE.REQUEST.is_anonymous:
-            if not self.api_anon:
-                return LENSE.HTTP.error(error='API handler <{0}.{1}> does not support anonymous requests'.format(self.api_mod, self.api_class))
+            if not self.map['anon']:
+                return LENSE.HTTP.error(error='API handler <{0}.{1}> does not support anonymous requests'.format(self.map['mod'], self.api_class))
             
         # Token request
         elif LENSE.REQUEST.is_token:    
-            if not LENSE.USER.AUTHENTICATE():
+            if not LENSE.USER.authenticate():
                 return LENSE.HTTP.error(error=LENSE.USER.AUTH_ERROR, status=401)
             LENSE.LOG.info('API key authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
         
@@ -93,18 +84,14 @@ class RequestManager(object):
         map = LENSE.API.map_request()
         
         # Request map failed
-        if not map['valid']: return map['content']
+        if not map['valid']: 
+            return map['content']
+        self.map = map['content']
     
         # Validate the request data
-        request_err = JSONTemplate(map['content']['rmap']).validate(LENSE.REQUEST.data)
+        request_err = JSONTemplate(self.map['rmap']).validate(LENSE.REQUEST.data)
         if request_err:
             return LENSE.HTTP.error(error=request_err, status=400)
-    
-        # Set the handler objects
-        self.api_path    = map['content']['path']
-        self.api_mod     = map['content']['mod']
-        self.api_class   = map['content']['class']
-        self.api_anon    = map['content']['anon']
     
     def run(self):
         """
@@ -131,24 +118,19 @@ class RequestManager(object):
         try:
             
             # Create an instance of the APIBase and run the constructor
-            api_obj = LENSE.API.BASE(request=self.request, acl=self.gateway)
+            api_obj = LENSE.API.BASE(acl=self.gateway)
             
             # Make sure the construct ran successfully
             if not api_obj['valid']:
                 return api_obj['content']
             
             # Set the API base object for endpoint utilities
-            self.api_base = api_obj['content']
+            base    = api_obj['content']
             
-        # Failed to setup the APIBase
-        except Exception as e:
-            return LENSE.HTTP.exception()
+            # Load the handler        
+            handler = import_class(self.map['class'], self.map['mod'], args=[base])
             
-        # Load the handler
-        handler = import_class(self.api_class, self.api_mod, args=[self.api_base])
-        
-        # Launch the request handler and return the response
-        try:
+            # Get a response
             response = handler.launch()
             
         # Critical error when running handler
@@ -156,7 +138,7 @@ class RequestManager(object):
             return LENSE.HTTP.exception()
         
         # Close any open SocketIO connections
-        self.api_base.socket.disconnect()
+        LENSE.SOCKET.disconnect()
         
         # Response sent timestamp
         rsp_sent = int(round(time() * 1000))
@@ -178,8 +160,8 @@ class RequestManager(object):
         
         # Return either a valid or invalid request response
         if response['valid']:
-            return self.api_base.log.success(response['content'], response['data'])
-        return self.api_base.log.error(code=response['code'], log_msg=response['content'])
+            return LENSE.API.LOG.success(response['content'], response['data'])
+        return LENSE.API.LOG.error(code=response['code'], log_msg=response['content'])
     
     @staticmethod
     def dispatch(request):

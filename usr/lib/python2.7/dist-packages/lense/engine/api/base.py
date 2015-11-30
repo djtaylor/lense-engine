@@ -15,32 +15,25 @@ class APIBase(object):
         """
         Initialize the APIBase class.
         
-        :param acl:      The ACL gateway generated during request initialization
-        :type  acl:      ACLGateway
+        :param acl: The ACL gateway generated during request initialization
+        :type  acl: ACLGateway
         """
+        LENSE.connect_socket()
         
-        # Email / request handler / ACL gateway
+        # Email / request handler / ACL gateway / websocket object
         self.email        = APIEmail()
         self.handler      = None
         self.acl          = acl
-
-        # SocketIO client / web socket object
-        self.socket       = SocketResponse().construct()
-        self.websock      = None
         
     def _set_websock(self):
         """
         Check if the client is making a request via the Socket.IO proxy server.
         """
         if 'socket' in LENSE.REQUEST.data:
-            
-            # Log the socket connection
             LENSE.LOG.info('Received connection from web socket client: {}'.format(str(LENSE.REQUEST.data['socket'])))
             
             # Set the web socket response attributes
-            self.websock = self.socket.set(LENSE.REQUEST.data['socket'])
-        else:
-            self.websock = None
+            LENSE.SOCKET.set(LENSE.REQUEST.data['socket'])
         
     def get_logger(self, client):
         """
