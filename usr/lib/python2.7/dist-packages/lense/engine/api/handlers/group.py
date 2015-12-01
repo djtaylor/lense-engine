@@ -7,25 +7,20 @@ from lense.common.http import HTTP_GET
 from lense.common.vars import GROUPS, USERS
 from lense.common.utils import valid, invalid
 from lense.engine.api.handlers import RequestHandler
-from lense.common.objects.user.models import APIUser
-from lense.common.objects.group.models import APIGroups, APIGroupMembers
+from lense.common.objects.group.models import APIGroupMembers
 
 class GroupMember_Remove(RequestHandler):
     """
     API class designed to handle remove group members.
     """
-    def __init__(self, parent):
+    def __init__(self):
         """
         Construct the GroupMemberRemove utility
-        
-        :param parent: The APIBase
-        :type parent: APIBase
         """
-        self.api   = parent
 
         # Target group / user
-        self.group = self.api.acl.target_object() 
-        self.user  = self.api.data['user']
+        self.group = LENSE.AUTH.ACL.target_object() 
+        self.user  = LENSE.REQUEST.data['user']
 
     def launch(self):
         """
@@ -33,8 +28,8 @@ class GroupMember_Remove(RequestHandler):
         """
 
         # Construct a list of authorized groups / users
-        auth_groups = self.api.acl.authorized_objects('group', path='group', method=HTTP_GET)
-        auth_users  = self.api.acl.authorized_objects('user', path='user', method=HTTP_GET)
+        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
+        auth_users  = LENSE.AUTH.ACL.authorized_objects('user', path='user', method=HTTP_GET)
 
         # If the group does not exist or access denied
         if not self.group in auth_groups.ids:
@@ -49,17 +44,14 @@ class GroupMember_Remove(RequestHandler):
             return invalid('Cannot remove the default administrator account from the default administrator group')
         
         # Get the group object
-        group = APIGroups.objects.get(uuid=self.group)
+        group = LENSE.GROUP.get(self.group)
         
         # Check if the user is already a member of the group
         if not self.user in group.members_list():
             return invalid('User <{0}> is not a member of group <{1}>'.format(self.user, self.group))
 
         # Remove the user from the group
-        group.members_unset(APIUser.objects.get(uuid=self.user))
-        
-        # Update the cached group data
-        self.api.cache.save_object('group', self.group)
+        group.members_unset(LENSE.USER.get(self.user))
         
         # Return the response
         return valid('Successfully removed group member', {
@@ -74,18 +66,14 @@ class GroupMember_Add(RequestHandler):
     """
     API class designed to handle adding group members.
     """
-    def __init__(self, parent):
+    def __init__(self):
         """
         Construct the GroupMemberAdd utility
-        
-        :param parent: The APIBase
-        :type parent: APIBase
         """
-        self.api   = parent
 
         # Target group / user
-        self.group = self.api.acl.target_object() 
-        self.user  = self.api.data['user']
+        self.group = LENSE.AUTH.ACL.target_object() 
+        self.user  = LENSE.REQUEST.data['user']
 
     def launch(self):
         """
@@ -93,37 +81,37 @@ class GroupMember_Add(RequestHandler):
         """
 
         # Construct a list of authorized groups / users
-        auth_groups = self.api.acl.authorized_objects('group', path='group', method=HTTP_GET)
-        auth_users  = self.api.acl.authorized_objects('user', path='user', method=HTTP_GET)
+        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
+        auth_users  = LENSE.AUTH.ACL.authorized_objects('user', path='user', method=HTTP_GET)
+
+        # Get the group handler
+        group = LENSE.GROUP.set(self.group)
 
         # If the group does not exist or access denied
-        if not self.group in auth_groups.ids:
-            return invalid('Failed to add user <{0}> to group <{1}>, group not found or access denied'.format(self.user, self.group))
+        if not group.id in auth_groups.ids:
+            return invalid('Failed to add user <{0}> to group <{1}>, group not found or access denied'.format(self.user, group.id))
 
         # If the user does not exist or access denied
         if not self.user in auth_users.ids:
-            return invalid('Failed to add user <{0}> to group <{1}>, user not found or access denied'.format(self.user, self.group))
+            return invalid('Failed to add user <{0}> to group <{1}>, user not found or access denied'.format(self.user, group.id))
         
-        # Get the group object
-        group = APIGroups.objects.get(uuid=self.group)
+        # Get the group / user object
+        group = LENSE.GROUP.get(self.group)
+        user  = LENSE.USER.get(self.user)
+        
+        # Make sure the user not already a group member
+        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(self.group, self.members),
+            value = False,
+            error = 'User "{0}" is already a member of group "{1}"'.format(self.user, self.group)
+        )
         
         # Check if the user is already a member of the group
-        if self.user in group.members_list():
+        if LENSE.GROUP.has_members(self.group, self.user):
             return invalid('User <{0}> is already a member of group <{1}>'.format(self.user, self.group))
-        
-        # Get the user object
-        user = APIUser.objects.get(uuid=self.user)
 
         # Add the user to the group
-        try:
-            group.members_set(user)
-            
-        # Failed to add user to group
-        except Exception as e:
-            return invalid(self.api.log.exception('Failed to add user to group: {0}'.format(str(e))))
-        
-        # Update the cached group data
-        self.api.cache.save_object('group', self.group)
+        if not LENSE.GROUP.add_member(self.group, self.user):
+            return invalid(LENSE.API.LOG.error('Failed to add user "{0}" to group "{1}"'.format(self.user, self.group)))
         
         # Return the response
         return valid('Successfully added group member', {
@@ -138,17 +126,13 @@ class Group_Delete(RequestHandler):
     """
     API class designed to handle deleting groups.
     """
-    def __init__(self, parent):
+    def __init__(self):
         """
         Construct the GroupDelete utility
-        
-        :param parent: The APIBase
-        :type parent: APIBase
         """
-        self.api   = parent
 
         # Target group
-        self.group = self.api.acl.target_object()
+        self.group = LENSE.AUTH.ACL.target_object()
 
     def launch(self):
         """
@@ -156,7 +140,7 @@ class Group_Delete(RequestHandler):
         """
 
         # Construct a list of authorized groups
-        auth_groups = self.api.acl.authorized_objects('group', path='group', method=HTTP_GET)
+        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
 
         # If the group does not exist or access denied
         if not self.group in auth_groups.ids:
@@ -167,11 +151,11 @@ class Group_Delete(RequestHandler):
             return invalid('Failed to delete group <{0}>, group is protected'.format(self.group))
 
         # If the group has any members
-        if APIGroupMembers.objects.filter(group=self.group).count():
-            return invalid('Failed to delete group <{0}>, must remove all group members first'.format(self.group))
+        if LENSE.GROUP.has_members(self.group):
+            return invalid('Failed to delete group "{0}", must remove all group members first'.format(self.group))
 
         # Delete the group
-        APIGroups.objects.filter(uuid=self.group).delete()
+        LENSE.GROUP.delete(self.group)
         
         # Return the response
         return valid('Successfully deleted group', {
@@ -182,8 +166,7 @@ class Group_Update(RequestHandler):
     """
     API class designed to handle updating attributes and permissions for a group.
     """
-    def __init__(self, parent):
-        self.api         = parent
+    def __init__(self):
 
         # Group name change and return name value
         self.name_change = False
@@ -191,38 +174,38 @@ class Group_Update(RequestHandler):
         self.name_old    = None
 
         # Target group / group object
-        self.group       = self.api.acl.target_object()
+        self.group       = LENSE.AUTH.ACL.target_object()
         self.group_obj   = None
     
     def _update_global_permissions(self):
         """
         Update the group global permissions.
         """
-        if ('permissions' in self.api.data) and ('global' in self.api.data['permissions']):
+        if ('permissions' in LENSE.REQUEST.data) and ('global' in LENSE.REQUEST.data['permissions']):
             try:
-                self.group_obj.global_permissions_set(self.api.data['permissions']['global'])
+                self.group_obj.global_permissions_set(LENSE.REQUEST.data['permissions']['global'])
             except Exception as e:
-                return invalid(self.api.log.exception('Failed to update global permissions: {0}'.format(str(e))))
+                return invalid(LENSE.API.LOG.exception('Failed to update global permissions: {0}'.format(str(e))))
         return valid()
     
     def _update_object_permissions(self):
         """
         Update the group object permissions.
         """
-        if ('permissions' in self.api.data) and ('object' in self.api.data['permissions']):
+        if ('permissions' in LENSE.REQUEST.data) and ('object' in LENSE.REQUEST.data['permissions']):
             try:
-                self.group_obj.object_permissions_set(self.api.data['permissions']['object'])
+                self.group_obj.object_permissions_set(LENSE.REQUEST.data['permissions']['object'])
             except Exception as e:
-                return invalid(self.api.log.exception('Failed to update object permissions: {0}'.format(str(e))))
+                return invalid(LENSE.API.LOG.exception('Failed to update object permissions: {0}'.format(str(e))))
         return valid()
     
     def _update_profile(self):
         """
         Update the group profile
         """
-        if 'profile' in self.api.data:
+        if 'profile' in LENSE.REQUEST.data:
             try:
-                p = self.api.data['profile']
+                p = LENSE.REQUEST.data['profile']
     
                 # Changing group protected state
                 if 'protected' in p:
@@ -245,7 +228,7 @@ class Group_Update(RequestHandler):
                 # Changing the group name
                 if 'name' in p:
                     if not (self.group_obj.name == p['name']):
-                        self.api.log.info('Renaming group <{0}> to <{1}>'.format(self.group_obj.name, p['name']))
+                        LENSE.API.LOG.info('Renaming group <{0}> to <{1}>'.format(self.group_obj.name, p['name']))
                         
                         # Toggle the name change flag and rename the group
                         self.name_change = True
@@ -256,7 +239,7 @@ class Group_Update(RequestHandler):
                         # Set the new group name to be returned
                         self.name_return = p['name']
             except Exception as e:
-                return invalid(self.api.log.exception('Failed to update group profile: {0}'.format(str(e))))
+                return invalid(LENSE.API.LOG.exception('Failed to update group profile: {0}'.format(str(e))))
         else:
             self.name_return = self.group_obj.name
         return valid()
@@ -267,14 +250,14 @@ class Group_Update(RequestHandler):
         """
     
         # Construct a list of authorized groups
-        auth_groups = self.api.acl.authorized_objects('group', path='group', method=HTTP_GET)
+        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
 
         # If the group does not exist or access denied
         if not self.group in auth_groups.ids:
             return invalid('Failed to update group <{0}>, not found in database or access denied'.format(self.group))
         
         # Load the group object
-        self.group_obj = APIGroups.objects.get(uuid=self.group)
+        self.group_obj = LENSE.GROUP.get(self.group)
         
         # Update the group profile
         profile_status = self._update_profile()
@@ -291,9 +274,6 @@ class Group_Update(RequestHandler):
         if not operms_status['valid']:
             return operms_status
         
-        # Update the cached group data
-        self.api.cache.save_object('group', self.group)
-        
         # Return the response
         return valid('Successfully updated group properties', {
             'name_change': self.name_change,
@@ -306,54 +286,41 @@ class Group_Create(RequestHandler):
     """
     API class designed to handle the creation of groups.
     """
-    def __init__(self, parent):
-        """
-        Construct the GroupCreate utility
-        
-        :param parent: The APIBase
-        :type parent: APIBase
-        """
-        self.api   = parent
-
     def launch(self):
         """
         Worker method that handles the creation of the group.
         """
             
         # Make sure the group doesn't exist
-        if APIGroups.objects.filter(name=self.api.data['name']).count():
-            return invalid(self.api.log.error('Group name <{0}> already exists'.format(self.api.data['name'])))
+        if LENSE.GROUP.exists(LENSE.REQUEST.data['name']):
+            return invalid(LENSE.API.LOG.error('Group already exists: {0}'.format(LENSE.REQUEST.data['name'])))
         
         # Generate a unique ID for the group
         group_uuid = str(uuid4())
         
         # If manually specifying a UUID
-        if self.api.data.get('uuid', False):
-            if APIGroups.objects.filter(uuid=self.api.data['uuid']).count():
-                return invalid(self.api.log.error('Cannot create group with duplicate UUID <{0}>'.format(self.api.data['uuid'])))
+        if LENSE.REQUEST.data.get('uuid', False):
+            if LENSE.GROUP.exists(LENSE.REQUEST.data['uuid']):
+                return invalid(LENSE.API.LOG.error('Cannot create group with duplicate UUID: {0}'.format(LENSE.REQUEST.data['uuid'])))
         
             # Set the manual UUID
-            group_uuid = self.api.data['uuid']
+            group_uuid = LENSE.REQUEST.data['uuid']
             
         # Create the group
-        try:
-            APIGroups(
-                uuid      = group_uuid,
-                name      = self.api.data['name'],
-                desc      = self.api.data['desc'],
-                protected = self.api.data.get('protected', False)
-            ).save()
-            
-        # Failed to create group
-        except Exception as e:
-            return invalid(self.api.log.exception('Failed to create group: {0}'.format(str(e))))
+        if not LENSE.GROUP.create(**{
+           'uuid': group_uuid,
+           'name': LENSE.REQUEST.data['name'],
+           'desc': LENSE.REQUEST.data['desc'],
+           'protected': LENSE.REQUEST.data.get('protected', False)                  
+        }):
+            return invalid(LENSE.API.LOG.error('Failed to create group: {0}'.format(str(e))))
         
         # Return the response
         return valid('Successfully created group', {
-            'name':      self.api.data['name'],
-            'desc':      self.api.data['desc'],
+            'name':      LENSE.REQUEST.data['name'],
+            'desc':      LENSE.REQUEST.data['desc'],
             'uuid':      str(group_uuid),
-            'protected': self.api.data.get('protected', False)
+            'protected': LENSE.REQUEST.data.get('protected', False)
         })
 
 class Group_Get(RequestHandler):
@@ -361,17 +328,13 @@ class Group_Get(RequestHandler):
     API class designed to retrieve the details of a single group, or a list of all group
     details.
     """
-    def __init__(self, parent):
+    def __init__(self):
         """
         Construct the GroupGet utility
-        
-        :param parent: The APIBase
-        :type parent: APIBase
         """
-        self.api   = parent
         
         # Target group
-        self.group = self.api.acl.target_object()
+        self.group = LENSE.AUTH.ACL.target_object()
             
     def launch(self):
         """
@@ -379,7 +342,7 @@ class Group_Get(RequestHandler):
         """
         
         # Construct a list of authorized groups
-        auth_groups = self.api.acl.authorized_objects('group', path='group', method=HTTP_GET)
+        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
         
         # If retrieving details for a single group
         if self.group:

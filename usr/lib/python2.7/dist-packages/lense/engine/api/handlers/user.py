@@ -28,7 +28,7 @@ class User_Delete(RequestHandler):
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
             return invalid('Cannot delete user "{0}", not found or access denied'.format(self.user))
-        self.api.log.info('Deleting user account "{0}"'.format(self.user))
+        LENSE.API.LOG.info('Deleting user account "{0}"'.format(self.user))
         
         # Cannot delete default administrator
         if self.user == USERS.ADMIN.UUID:
@@ -63,7 +63,7 @@ class User_Enable(RequestHandler):
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
             return invalid('Cannot enable user "{0}", not found or access denied'.format(self.user))
-        self.api.log.info('Enabling user account "{0}"'.format(self.user))
+        LENSE.API.LOG.info('Enabling user account "{0}"'.format(self.user))
 
         # Cannot enable/disable default administrator
         if self.user == USERS.ADMIN.UUID:
@@ -100,7 +100,7 @@ class User_Disable(RequestHandler):
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
             return invalid('Cannot disable user "{0}", not found or access denied'.format(self.user))
-        self.api.log.info('Disabling user account "{0}"'.format(self.user))
+        LENSE.API.LOG.info('Disabling user account "{0}"'.format(self.user))
 
         # Cannot enable/disable default administrator
         if self.user == USERS.ADMIN.UUID:
@@ -137,7 +137,7 @@ class User_ResetPassword(RequestHandler):
         # If the user does not exist or access is denied
         if not self.user in auth_users.ids:
             return invalid('Cannot reset password for user "{0}", not found or access denied'.format(self.user))
-        self.api.log.info('Resetting password for user "{0}"]'.format(self.user))
+        LENSE.API.LOG.info('Resetting password for user "{0}"]'.format(self.user))
         
         # Generate a new random password
         new_pw = rstring()
@@ -147,7 +147,7 @@ class User_ResetPassword(RequestHandler):
             user_obj = APIUser.objects.get(username=self.user)
             user_obj.set_password(new_pw)
             user_obj.save()
-            self.api.log.info('Successfully reset password for user "{0}"'.format(self.user))
+            LENSE.API.LOG.info('Successfully reset password for user "{0}"'.format(self.user))
             
         # Critical error when resetting user password
         except Exception as e:
@@ -164,14 +164,14 @@ class User_ResetPassword(RequestHandler):
             
             # Send the email
             if self.api.email.send(email_sub, email_txt, email_from, email_to):
-                self.api.log.info('Sent email confirmation for password reset to user: {0}'.format(self.user))
+                LENSE.API.LOG.info('Sent email confirmation for password reset to user: {0}'.format(self.user))
             
             # Return the response
             return valid('Successfully reset user password')
         
         # Critical error when sending password reset notification
         except Exception as e:
-            return invalid(self.api.log.error('Failed to send password reset confirmation: {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.error('Failed to send password reset confirmation: {0}'.format(str(e))))
 
 class User_Create(RequestHandler):
     """
@@ -193,7 +193,7 @@ class User_Create(RequestHandler):
 
         # Make sure the user doesn't exist
         if APIUser.objects.filter(username=self.api.data['username']).count():
-            return invalid(self.api.log.error('The user account "{0}" already exists'.format(self.api.data['username'])))
+            return invalid(LENSE.API.LOG.error('The user account "{0}" already exists'.format(self.api.data['username'])))
 
         # Password RegEx Tester:
         # - At least 8 characters
@@ -203,7 +203,7 @@ class User_Create(RequestHandler):
         # - At least 1 special character
         pw_regex = re.compile(r'^\S*(?=\S{8,})(?=\S*[a-z])(?=\S*[A-Z])(?=\S*[\d])(?=\S*[\W])\S*$')
         if not pw_regex.match(self.api.data['password']):
-            return invalid(self.api.log.error('Password is too weak. Must be at least 8 characters and contain - upper/lower case letters, numbers, and special characters'))
+            return invalid(LENSE.API.LOG.error('Password is too weak. Must be at least 8 characters and contain - upper/lower case letters, numbers, and special characters'))
         return valid()
 
     def launch(self):
@@ -239,7 +239,7 @@ class User_Create(RequestHandler):
             # Check if specifying a manual user UUID
             if self.api.data.get('uuid', False):
                 if APIUser.objects.filter(uuid=self.api.data['uuid']).count():
-                    return invalid(self.api.log.error('Cannot create user with duplicate UUID: {0}'.format(self.api.data['uuid'])))
+                    return invalid(LENSE.API.LOG.error('Cannot create user with duplicate UUID: {0}'.format(self.api.data['uuid'])))
                 
             # Create the user account
             new_user = APIUser.objects.create_user(
@@ -252,7 +252,7 @@ class User_Create(RequestHandler):
                 
             # Save the user account details
             new_user.save()
-            self.api.log.info('Created user account "{0}"'.format((self.api.data['username'])))
+            LENSE.API.LOG.info('Created user account "{0}"'.format((self.api.data['username'])))
             
             # Send the account creation email
             try:
@@ -265,18 +265,18 @@ class User_Create(RequestHandler):
                 
                 # Send the email
                 if self.api.email.send(email_sub, email_txt, email_from, email_to):
-                    self.api.log.info('Sent email confirmation for new account "{0}" to "{1}"'.format(new_user.username, new_user.email))
+                    LENSE.API.LOG.info('Sent email confirmation for new account "{0}" to "{1}"'.format(new_user.username, new_user.email))
                 
                     # Return valid
                     return valid('Successfully sent account creation confirmation')
             
             # Critical error when sending email confirmation, continue but log exception
             except Exception as e:
-                self.api.log.exception('Failed to send account creation confirmation: {0}'.format(str(e)))
+                LENSE.API.LOG.exception('Failed to send account creation confirmation: {0}'.format(str(e)))
             
         # Something failed during creation
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to create user account "{0}": {1}'.format(self.api.data['username'], str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to create user account "{0}": {1}'.format(self.api.data['username'], str(e))))
         
         # Get the new user's API key
         api_key = APIUserKeys.objects.filter(user=new_user.uuid).values()[0]['api_key']

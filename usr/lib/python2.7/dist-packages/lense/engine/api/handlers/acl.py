@@ -1,13 +1,7 @@
-import re
-import os
-import json
 from uuid import uuid4
-
-# Django Libraries
-from django.core.serializers.json import DjangoJSONEncoder
+from json import dumps as json_dumps
 
 # Lense Libraries
-from lense import MODULE_ROOT
 from lense.engine.api.handlers import RequestHandler
 from lense.common.objects.handler.models import Handlers
 from lense.common.utils import valid, invalid, mod_has_class
@@ -17,11 +11,10 @@ class ACLObjects_Delete(RequestHandler):
     """
     Delete an existing ACL object definition.
     """
-    def __init__(self, parent):
-        self.api  = parent
+    def __init__(self):
         
         # Get the target ACL object
-        self.type = self.api.data.get('type')
+        self.type = LENSE.REQUEST.data.get('type')
 
     def launch(self):
         """
@@ -45,7 +38,7 @@ class ACLObjects_Delete(RequestHandler):
             
         # Critical error when deleting ACL object
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to delete ACL object [{0}] definition: {1}'.format(self.type, str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to delete ACL object [{0}] definition: {1}'.format(self.type, str(e))))
 
         # Return the response
         return valid('Successfully deleted ACL object definition', {
@@ -56,8 +49,7 @@ class ACLObjects_Create(RequestHandler):
     """
     Create a new ACL object definition.
     """
-    def __init__(self, parent):
-        self.api  = parent
+    def __init__(self):
         
         # API object attributes
         self.attr = self._set_attr()
@@ -81,7 +73,7 @@ class ACLObjects_Create(RequestHandler):
         ]
         
         # Construct and return the attributes object
-        return {k:self.api.data.get(k) for k in attr_keys}
+        return {k:LENSE.REQUEST.data.get(k) for k in attr_keys}
         
     def launch(self):
         """
@@ -104,12 +96,12 @@ class ACLObjects_Create(RequestHandler):
         self.attr['uuid'] = str(uuid4())
         
         # If a default ACL UUID is supplied
-        if ('def_acl' in self.api.data):
+        if ('def_acl' in LENSE.REQUEST.data):
             if not ACLKeys.objects.filter(uuid=self.attr['def_acl']).count():
                 return invalid('Failed to create ACL object type [{0}], default ACL [{1}] not found'.format(self.attr['type'], self.attr['def_acl']))
         
             # Get the default ACL object
-            self.attr['def_acl'] = ACLKeys.objects.get(uuid=self.api.data['def_acl'])
+            self.attr['def_acl'] = ACLKeys.objects.get(uuid=LENSE.REQUEST.data['def_acl'])
             
             # Make sure the ACL has object type authentication enabled
             if not self.attr['def_acl'].type_object:
@@ -121,7 +113,7 @@ class ACLObjects_Create(RequestHandler):
             
         # Critical error when saving ACL object definition
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to create ACL object type [{0}]: {1}'.format(self.attr['type'], str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to create ACL object type [{0}]: {1}'.format(self.attr['type'], str(e))))
         
         # Return the response
         return valid('Successfully created ACL object definition', {
@@ -134,11 +126,10 @@ class ACLObjects_Update(RequestHandler):
     """
     Update attributes for an ACL object.
     """
-    def __init__(self, parent): 
-        self.api = parent
+    def __init__(self):
 
         # Target object type
-        self.type = self.api.data.get('type')
+        self.type = LENSE.REQUEST.data.get('type')
 
     def launch(self):
         """
@@ -153,8 +144,8 @@ class ACLObjects_Update(RequestHandler):
         acl_obj = ACLObjects.objects.filter(type=self.type).values()[0]
         
         # ACL module / class
-        acl_mod = acl_obj['acl_mod'] if not ('acl_mod' in self.api.data) else self.api.data['acl_mod']
-        acl_cls = acl_obj['acl_cls'] if not ('acl_cls' in self.api.data) else self.api.data['acl_cls']
+        acl_mod = acl_obj['acl_mod'] if not ('acl_mod' in LENSE.REQUEST.data) else LENSE.REQUEST.data['acl_mod']
+        acl_cls = acl_obj['acl_cls'] if not ('acl_cls' in LENSE.REQUEST.data) else LENSE.REQUEST.data['acl_cls']
         
         # Make sure the module/class combination is valid
         acl_mod_status = mod_has_class(acl_mod, acl_cls, no_launch=True)
@@ -162,8 +153,8 @@ class ACLObjects_Update(RequestHandler):
             return acl_mod_status
         
         # Object module / class
-        obj_mod = acl_obj['obj_mod'] if not ('obj_mod' in self.api.data) else self.api.data['obj_mod']
-        obj_cls = acl_obj['obj_cls'] if not ('obj_cls' in self.api.data) else self.api.data['obj_cls']
+        obj_mod = acl_obj['obj_mod'] if not ('obj_mod' in LENSE.REQUEST.data) else LENSE.REQUEST.data['obj_mod']
+        obj_cls = acl_obj['obj_cls'] if not ('obj_cls' in LENSE.REQUEST.data) else LENSE.REQUEST.data['obj_cls']
         
         # Make sure the module/class combination is valid
         obj_mod_status = mod_has_class(obj_mod, obj_cls, no_launch=True)
@@ -172,27 +163,27 @@ class ACLObjects_Update(RequestHandler):
         
         # If updating the default ACL definition
         def_acl = None
-        if 'def_acl' in self.api.data:
+        if 'def_acl' in LENSE.REQUEST.data:
             
             # Make sure the default ACL exists
-            if not ACLKeys.objects.filter(uuid=self.api.data['def_acl']).count():
-                return invalid('Failed to update ACL object type [{0}], default ACL [{1}] not found'.format(self.type, self.api.data['def_acl']))
+            if not ACLKeys.objects.filter(uuid=LENSE.REQUEST.data['def_acl']).count():
+                return invalid('Failed to update ACL object type [{0}], default ACL [{1}] not found'.format(self.type, LENSE.REQUEST.data['def_acl']))
         
             # Get the default ACL object
-            def_acl = ACLKeys.objects.get(uuid=self.api.data['def_acl'])
+            def_acl = ACLKeys.objects.get(uuid=LENSE.REQUEST.data['def_acl'])
             
             # Make sure the ACL has object type authentication enabled
             if not def_acl.type_object:
                 return invalid('Failed to update ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.type, def_acl.uuid))
         
             # Clear the UUID string from the API data
-            del self.api.data['def_acl']
+            del LENSE.REQUEST.data['def_acl']
         
         # Update the object definition
         try:
             
             # Update string values
-            ACLObjects.objects.filter(type=self.type).update(**self.api.data)
+            ACLObjects.objects.filter(type=self.type).update(**LENSE.REQUEST.data)
             
             # If changing the default ACL
             if def_acl:
@@ -211,12 +202,11 @@ class ACLObjects_Get(RequestHandler):
     """
     Retrieve a list of supported ACL object types.
     """
-    def __init__(self, parent):
-        self.api      = parent
+    def __init__(self):
 
         # Type filter / detailed return
-        self.type     = self.api.data.get('type')
-        self.detailed = self.api.data.get('detailed')
+        self.type     = LENSE.REQUEST.data.get('type')
+        self.detailed = LENSE.REQUEST.data.get('detailed')
 
         # Extract all ACL objects
         self.objects  = list(ACLObjects.objects.all().values(detailed=self.detailed))
@@ -247,11 +237,10 @@ class ACL_Update(RequestHandler):
     """
     Update an existing ACL definition.
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
         
         # Target ACL
-        self.acl = self.api.data['uuid']
+        self.acl = LENSE.REQUEST.data['uuid']
         
     def launch(self):
         """
@@ -267,22 +256,22 @@ class ACL_Update(RequestHandler):
         
         # ACL parameters
         params = {
-            'name': self.api.data.get('name', acl_row['name']),
-            'desc': self.api.data.get('desc', acl_row['desc']),
-            'type_object': self.api.data.get('type_object', acl_row['type_object']),
-            'type_global': self.api.data.get('type_global', acl_row['type_global'])
+            'name': LENSE.REQUEST.data.get('name', acl_row['name']),
+            'desc': LENSE.REQUEST.data.get('desc', acl_row['desc']),
+            'type_object': LENSE.REQUEST.data.get('type_object', acl_row['type_object']),
+            'type_global': LENSE.REQUEST.data.get('type_global', acl_row['type_global'])
         }
         
         # Update ACL details
         try:
             ACLKeys.objects.filter(uuid=self.acl).update(**params)
-            self.api.log.info('Updated properties for ACL [{0}]'.format(self.acl))
+            LENSE.API.LOG.info('Updated properties for ACL [{0}]'.format(self.acl))
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to update details for ACL [{0}]: {1}'.format(self.acl, str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to update details for ACL [{0}]: {1}'.format(self.acl, str(e))))
         
         # If updating ACL handlers
-        if 'handlers' in self.api.data:
-            handlers = self.api.data['handlers']
+        if 'handlers' in LENSE.REQUEST.data:
+            handlers = LENSE.REQUEST.data['handlers']
             
             # Get all handlers
             handler_all = list(Handlers.objects.all().values())
@@ -302,7 +291,7 @@ class ACL_Update(RequestHandler):
             
             # Update ACL handlers
             for acl_type, acl_handler in handlers.iteritems():
-                self.api.log.info('Updating access type [{0}] for ACL [{1}]'.format(acl_type, self.acl))
+                LENSE.API.LOG.info('Updating access type [{0}] for ACL [{1}]'.format(acl_type, self.acl))
                 try:
                     
                     # Global
@@ -332,11 +321,11 @@ class ACL_Update(RequestHandler):
                             ).save()
                     
                     # All handlers updated
-                    self.api.log.info('Updated all handlers for ACL [{0}]'.format(self.acl))
+                    LENSE.API.LOG.info('Updated all handlers for ACL [{0}]'.format(self.acl))
                     
                 # Failed to update handlers
                 except Exception as e:
-                    return invalid(self.api.log.exception('Failed to update [{0}] handlers for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
+                    return invalid(LENSE.API.LOG.exception('Failed to update [{0}] handlers for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
         
         # ACL updated
         return valid('Succesfully updated ACL')
@@ -345,11 +334,10 @@ class ACL_Delete(RequestHandler):
     """
     Delete an existing ACL.
     """            
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
         
         # Target ACL
-        self.acl = self.api.data['uuid']
+        self.acl = LENSE.REQUEST.data['uuid']
         
     def launch(self):
         """
@@ -363,7 +351,7 @@ class ACL_Delete(RequestHandler):
         # Delete the ACL definition
         try:
             ACLKeys.objects.filter(uuid=self.acl).delete()
-            self.api.log.info('Deleted ACL definition [{0}]'.format(self.acl))
+            LENSE.API.LOG.info('Deleted ACL definition [{0}]'.format(self.acl))
             
             # ACL deleted
             return valid('Successfully deleted ACL', {
@@ -372,15 +360,12 @@ class ACL_Delete(RequestHandler):
             
         # Failed to delete ACL
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to delete ACL [{0}]: {1}'.format(self.acl, str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to delete ACL [{0}]: {1}'.format(self.acl, str(e))))
         
 class ACL_Create(RequestHandler):
     """
     Create a new ACL definition.
     """
-    def __init__(self, parent):
-        self.api = parent
-        
     def launch(self):
         """
         Worker method for handling ACL definition creation.
@@ -389,16 +374,13 @@ class ACL_Create(RequestHandler):
         # Generate a UUID for the ACL
         acl_uuid = str(uuid4())
         
-        # Handlers (not used for now)
-        #handlers = self.api.data['handlers']
-        
         # ACL parameters
         params = {
             'uuid': str(uuid4()),
-            'name': self.api.data['name'],
-            'desc': self.api.data['desc'],
-            'type_object': self.api.data['type_object'],
-            'type_global': self.api.data['type_global']
+            'name': LENSE.REQUEST.data['name'],
+            'desc': LENSE.REQUEST.data['desc'],
+            'type_object': LENSE.REQUEST.data['type_object'],
+            'type_global': LENSE.REQUEST.data['type_global']
         }
         
         # Make sure the ACL doesn't exist
@@ -409,7 +391,7 @@ class ACL_Create(RequestHandler):
         try:
             ACLKeys(**params).save()
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to create ACL definition: {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to create ACL definition: {0}'.format(str(e))))
             
         # Create ACL definition
         return valid('Create new ACL definition', {
@@ -422,11 +404,10 @@ class ACL_Get(RequestHandler):
     """
     Return an object with all ACL definitions.
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
         
         # Target ACL definition
-        self.acl = self.api.acl.target_object()
+        self.acl = LENSE.AUTH.ACL.target_object()
 
     def launch(self):
         """
@@ -447,12 +428,12 @@ class ACL_Get(RequestHandler):
                     return invalid('Could not locate ACL [{0}] in the database'.format(self.acl))
                 
                 # Return the ACL definition
-                return valid(json.dumps(acl_definition[0]))
+                return valid(json_dumps(acl_definition[0]))
             
             # If retrieving all ACL definitions
             else:
-                return valid(json.dumps(list(ACLKeys.objects.all().values())))
+                return valid(json_dumps(list(ACLKeys.objects.all().values())))
             
         # Error during ACL construction
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to retrieve ACL definition(s): {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to retrieve ACL definition(s): {0}'.format(str(e))))

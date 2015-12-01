@@ -4,7 +4,7 @@ from json import loads as json_loads
 
 # Lense Libraries
 from lense import import_class
-from lense.common.auth.acl import AuthACLGateway
+from lense.common.exceptions import RequestError
 from lense.engine.api.handlers.stats import log_request_stats
 from lense.common.utils import JSONTemplate, valid, invalid
 
@@ -38,12 +38,14 @@ class RequestManager(object):
     by the Django URLs module file. It is initialized with the Django request object.
     """
     def __init__(self, request):
+        
+        # Set request / API logger / SocketIO data
         LENSE.REQUEST.set(request)
         LENSE.API.create_logger()
+        LENSE.connect_socket().set()
     
-        # Request map / ACL gateway
+        # Request map
         self.map       = None
-        self.gateway   = None
     
     def _authenticate(self):
         """
@@ -68,12 +70,12 @@ class RequestManager(object):
                 return LENSE.HTTP.error(error=LENSE.USER.AUTH_ERROR, status=401)
             LENSE.LOG.info('API token authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
             
-            # Perform ACL authorization
-            self.gateway = ACLGateway(LENSE.REQUEST)
-        
-            # If the user is not authorized for this endpoint/object combination
-            if not self.gateway.authorized:
-                return LENSE.HTTP.error(error=self.gateway.auth_error, status=401)
+            # Run the request through the ACL gateway
+            LENSE.AUTH.set_acl(LENSE.REQUEST)
+            
+            # Access not authorized
+            if not LENSE.AUTH.ACL.authorized:
+                return LENSE.HTTP.error(error=LENSE.AUTH.ACL.auth_error, status=401)
     
     def _validate(self):
         """
@@ -114,24 +116,13 @@ class RequestManager(object):
         if validate_error: return validate_error
         if auth_error: return auth_error
         
-        # Set up the API base
-        try:
+        # Set up the request handler and get a response
+        try:       
+            response = import_class(self.map['class'], self.map['mod']).launch()
             
-            # Create an instance of the APIBase and run the constructor
-            api_obj = LENSE.API.BASE(acl=self.gateway)
-            
-            # Make sure the construct ran successfully
-            if not api_obj['valid']:
-                return api_obj['content']
-            
-            # Set the API base object for endpoint utilities
-            base    = api_obj['content']
-            
-            # Load the handler        
-            handler = import_class(self.map['class'], self.map['mod'], args=[base])
-            
-            # Get a response
-            response = handler.launch()
+        # Request error
+        except RequestError as e:
+            return LENSE.HTTP.error(msg=e.message, status=e.code)
             
         # Critical error when running handler
         except Exception as e:
