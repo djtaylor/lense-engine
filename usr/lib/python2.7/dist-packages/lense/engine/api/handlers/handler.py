@@ -14,11 +14,10 @@ class Handler_Delete(RequestHandler):
     """
     Delete an existing API handler.
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
 
         # Target handler
-        self.handler = self.api.data['uuid']
+        self.handler = LENSE.REQUEST.data['uuid']
 
     def launch(self):
         """
@@ -27,7 +26,7 @@ class Handler_Delete(RequestHandler):
         
         # Make sure the handler exists
         if not Handlers.objects.filter(uuid=self.handler).count():
-            return invalid(self.api.log.error('Could not delete handler [{0}], not found in database'.format(self.handler)))
+            return invalid(LENSE.API.LOG.error('Could not delete handler [{0}], not found in database'.format(self.handler)))
         
         # Get the handler details
         handler_row = Handlers.objects.filter(uuid=self.handler).values()[0]
@@ -40,7 +39,7 @@ class Handler_Delete(RequestHandler):
         try:
             Handlers.objects.filter(uuid=self.handler).delete()
         except Exception as e:
-            return invalid(self.api.log.exeption('Failed to delete handler: {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.exeption('Failed to delete handler: {0}'.format(str(e))))
         
         # Construct and return the web data
         web_data = {
@@ -52,13 +51,12 @@ class Handler_Create(RequestHandler):
     """
     Create a new API handler.
     """
-    def __init__(self, parent):
-        self.api  = parent
+    def __init__(self):
 
     def _get_rmap(self):
-        if isinstance(self.api.data['rmap'], (dict, list)):
-            return json.dumps(self.api.data['rmap'])
-        return self.api.data['rmap']
+        if isinstance(LENSE.REQUEST.data['rmap'], (dict, list)):
+            return json.dumps(LENSE.REQUEST.data['rmap'])
+        return LENSE.REQUEST.data['rmap']
 
     def launch(self):
         """
@@ -68,17 +66,17 @@ class Handler_Create(RequestHandler):
         # Creation parameters
         params = {
             'uuid':       str(uuid4()),
-            'name':       self.api.data['name'],
-            'path':       self.api.data['path'],
-            'desc':       self.api.data['desc'],
-            'method':     self.api.data['method'],
-            'mod':        self.api.data['mod'],
-            'cls':        self.api.data['cls'],
-            'protected':  self.api.data['protected'],
-            'enabled':    self.api.data['enabled'],
-            'object':     self.api.data.get('object'),
-            'object_key': self.api.data.get('object_key'),
-            'allow_anon': self.api.data.get('allow_anon', False),
+            'name':       LENSE.REQUEST.data['name'],
+            'path':       LENSE.REQUEST.data['path'],
+            'desc':       LENSE.REQUEST.data['desc'],
+            'method':     LENSE.REQUEST.data['method'],
+            'mod':        LENSE.REQUEST.data['mod'],
+            'cls':        LENSE.REQUEST.data['cls'],
+            'protected':  LENSE.REQUEST.data['protected'],
+            'enabled':    LENSE.REQUEST.data['enabled'],
+            'object':     LENSE.REQUEST.data.get('object'),
+            'object_key': LENSE.REQUEST.data.get('object_key'),
+            'allow_anon': LENSE.REQUEST.data.get('allow_anon', False),
             'locked':     False,
             'locked_by':  None,
             'rmap':       self._get_rmap()
@@ -111,11 +109,10 @@ class Handler_Save(RequestHandler):
     """
     Save changes to an API handler.
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
         
         # Target handler
-        self.handler = self.api.data['uuid']
+        self.handler = LENSE.REQUEST.data['uuid']
 
     def launch(self):
         """
@@ -124,23 +121,23 @@ class Handler_Save(RequestHandler):
 
         # Make sure the handler exists
         if not Handlers.objects.filter(uuid=self.handler).count():
-            return invalid(self.api.log.error('Could not save handler [{0}], not found in database'.format(self.handler)))
+            return invalid(LENSE.API.LOG.error('Could not save handler [{0}], not found in database'.format(self.handler)))
 
         # Get the handler details
         handler = Handlers.objects.filter(uuid=self.handler).values()[0]
     
         # Update parameters
         params = {
-            'path': self.api.data.get('path', handler['path']),
-            'method': self.api.data.get('method', handler['method']),
-            'mod': self.api.data.get('mod', handler['mod']),
-            'cls': self.api.data.get('cls', handler['cls']),
-            'rmap': self.api.data.get('rmap', handler['rmap']),
-            'enabled': self.api.data.get('enabled', handler['enabled']),
-            'protected': self.api.data.get('protected', handler['protected']),
-            'object': self.api.data.get('object', handler['object']),
-            'object_key': self.api.data.get('object_key', handler['object_key']),
-            'allow_anon': self.api.data.get('allow_anon', handler['allow_anon'])
+            'path': LENSE.REQUEST.data.get('path', handler['path']),
+            'method': LENSE.REQUEST.data.get('method', handler['method']),
+            'mod': LENSE.REQUEST.data.get('mod', handler['mod']),
+            'cls': LENSE.REQUEST.data.get('cls', handler['cls']),
+            'rmap': LENSE.REQUEST.data.get('rmap', handler['rmap']),
+            'enabled': LENSE.REQUEST.data.get('enabled', handler['enabled']),
+            'protected': LENSE.REQUEST.data.get('protected', handler['protected']),
+            'object': LENSE.REQUEST.data.get('object', handler['object']),
+            'object_key': LENSE.REQUEST.data.get('object_key', handler['object_key']),
+            'allow_anon': LENSE.REQUEST.data.get('allow_anon', handler['allow_anon'])
         }
     
         # Make sure the request map value is a string'
@@ -153,7 +150,7 @@ class Handler_Save(RequestHandler):
             
         # Critical error when updating handler
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to update handler: {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to update handler: {0}'.format(str(e))))
 
         # Successfully updated handler
         return valid('Successfully updated handler.')
@@ -162,11 +159,10 @@ class Handler_Validate(RequestHandler):
     """
     Validate changes to an API handler prior to saving.
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
 
         # Target handler
-        self.handler = self.api.data['uuid']
+        self.handler = LENSE.REQUEST.data['uuid']
 
     def _validate(self):
         """
@@ -181,16 +177,16 @@ class Handler_Validate(RequestHandler):
     
         # Default values
         default = {
-            'path': self.api.data.get('path', handler['path']),
-            'method': self.api.data.get('method', handler['method']),
-            'mod': self.api.data.get('mod', handler['mod']),
-            'cls': self.api.data.get('cls', handler['cls']),
-            'rmap': self.api.data.get('rmap', handler['rmap']),
-            'enabled': self.api.data.get('enabled', handler['enabled']),
-            'protected': self.api.data.get('protected', handler['protected']),
-            'object': self.api.data.get('object', handler['object']),
-            'object_key': self.api.data.get('object_key', handler['object_key']),
-            'allow_anon': self.api.data.get('allow_anon', handler['allow_anon'])
+            'path': LENSE.REQUEST.data.get('path', handler['path']),
+            'method': LENSE.REQUEST.data.get('method', handler['method']),
+            'mod': LENSE.REQUEST.data.get('mod', handler['mod']),
+            'cls': LENSE.REQUEST.data.get('cls', handler['cls']),
+            'rmap': LENSE.REQUEST.data.get('rmap', handler['rmap']),
+            'enabled': LENSE.REQUEST.data.get('enabled', handler['enabled']),
+            'protected': LENSE.REQUEST.data.get('protected', handler['protected']),
+            'object': LENSE.REQUEST.data.get('object', handler['object']),
+            'object_key': LENSE.REQUEST.data.get('object_key', handler['object_key']),
+            'allow_anon': LENSE.REQUEST.data.get('allow_anon', handler['allow_anon'])
         }
     
         # Make sure the path string is valid
@@ -236,7 +232,7 @@ class Handler_Validate(RequestHandler):
         
         # Make sure the handler exists
         if not Handlers.objects.filter(uuid=self.handler).count():
-            return invalid(self.api.log.error('Could not validate handler [{0}], not found in database'.format(self.handler)))
+            return invalid(LENSE.API.LOG.error('Could not validate handler [{0}], not found in database'.format(self.handler)))
 
         # Validate the handler attributes
         handler = self._validate()
@@ -250,11 +246,10 @@ class Handler_Close(RequestHandler):
     """
     Close an API handler and release the editing lock.
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
 
         # Target handler
-        self.handler = self.api.data['uuid']
+        self.handler = LENSE.REQUEST.data['uuid']
 
     def launch(self):
         """
@@ -263,17 +258,17 @@ class Handler_Close(RequestHandler):
     
         # Make sure the handler exists
         if not Handlers.objects.filter(uuid=self.handler).count():
-            return invalid(self.api.log.error('Could not check in handler [{0}], not found in database'.format(self.handler)))
+            return invalid(LENSE.API.LOG.error('Could not check in handler [{0}], not found in database'.format(self.handler)))
         
         # Get the handler details row
         handler = Handlers.objects.filter(uuid=self.handler).values()[0]
         
         # Check if the handler is already checked out
         if handler['locked'] == False:
-            return invalid(self.api.log.error('Could not check in handler [{0}], already checked in'.format(self.handler)))
+            return invalid(LENSE.API.LOG.error('Could not check in handler [{0}], already checked in'.format(self.handler)))
         
         # Unlock the handler
-        self.api.log.info('Checked in handler [{0}] by user [{1}]'.format(self.handler, self.api.user))
+        LENSE.API.LOG.info('Checked in handler [{0}] by user [{1}]'.format(self.handler, LENSE.REQUEST.USER.name))
         try:
             Handlers.objects.filter(uuid=self.handler).update(
                 locked    = False,
@@ -283,65 +278,61 @@ class Handler_Close(RequestHandler):
             
         # Failed to check out the handler
         except Exception as e:
-            return invalid(self.api.log.error('Failed to check in handler with error: {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.error('Failed to check in handler with error: {0}'.format(str(e))))
 
 class Handler_Open(RequestHandler):
     """
     Open an API handler for editing.
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
         
         # Target handler
-        self.handler = self.api.data['uuid']
+        self.handler = LENSE.REQUEST.data['uuid']
         
     def launch(self):
         """
         Worker method to open the handler for editing.
         """
-        self.api.log.info('Preparing to checkout handler [{0}] for editing'.format(self.handler))
+        LENSE.API.LOG.info('Preparing to checkout handler [{0}] for editing'.format(self.handler))
     
         # Make sure the handler exists
         if not Handlers.objects.filter(uuid=self.handler).count():
-            return invalid(self.api.log.error('Could not open handler [{0}] for editing, not found in database'.format(self.handler)))
+            return invalid(LENSE.API.LOG.error('Could not open handler [{0}] for editing, not found in database'.format(self.handler)))
         
         # Get the handler details row
         handler = Handlers.objects.filter(uuid=self.handler).values()[0]
         
         # Check if the handler is locked
         if handler['locked'] == True:
-            self.api.log.info('Utility [{0}] already checked out by user [{1}]'.format(self.handler, handler['locked_by']))
+            LENSE.API.LOG.info('Utility [{0}] already checked out by user [{1}]'.format(self.handler, handler['locked_by']))
             
             # If the handler is checked out by the current user
-            if handler['locked_by'] == self.api.user:
-                self.api.log.info('Utility checkout request OK, requestor [{0}] is the same as the locking user [{1}]'.format(self.api.user, handler['locked_by']))
+            if handler['locked_by'] == LENSE.REQUEST.USER.name:
+                LENSE.API.LOG.info('Utility checkout request OK, requestor [{0}] is the same as the locking user [{1}]'.format(LENSE.REQUEST.USER.name, handler['locked_by']))
                 return valid('Utility already checked out by the current user')
             else:
-                return invalid(self.api.log.error('Could not open handler [{0}] for editing, already checked out by {1}'.format(self.handler, handler['locked_by'])))
+                return invalid(LENSE.API.LOG.error('Could not open handler [{0}] for editing, already checked out by {1}'.format(self.handler, handler['locked_by'])))
     
         # Set the locking user
-        locked_by = self.api.user
+        locked_by = LENSE.REQUEST.USER.name
         
         # Lock the handler for editing
-        self.api.log.info('Checkout out handler [{0}] for editing by user [{1}]'.format(self.handler, locked_by))
+        LENSE.API.LOG.info('Checkout out handler [{0}] for editing by user [{1}]'.format(self.handler, locked_by))
         try:
             Handlers.objects.filter(uuid=self.handler).update(
                 locked    = True,
-                locked_by = self.api.user
+                locked_by = LENSE.REQUEST.USER.name
             )
             return valid('Successfully checked out handler for editing')
             
         # Failed to check out the handler
         except Exception as e:
-            return invalid(self.api.log.error('Failed to check out handler for editing with error: {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.error('Failed to check out handler for editing with error: {0}'.format(str(e))))
 
 class Handler_Get(RequestHandler):
     """
     Retrieve a listing of API utilities.
     """
-    def __init__(self, parent):
-        self.api = parent
-        
     def launch(self):
         """
         Worker method to retrieve a listing of API utilities.
@@ -349,15 +340,15 @@ class Handler_Get(RequestHandler):
         try:
             
             # If grabbing a specific handler
-            if 'uuid' in self.api.data:
+            if 'uuid' in LENSE.REQUEST.data:
                 
                 # If the handler doesn't exist
-                if not Handlers.objects.filter(uuid=self.api.data['uuid']).count():
-                    return invalid('Utility [{0}] does not exist'.format(self.api.data['uuid']))
-                return valid(json.dumps(Handlers.objects.filter(uuid=self.api.data['uuid']).values()[0]))
+                if not Handlers.objects.filter(uuid=LENSE.REQUEST.data['uuid']).count():
+                    return invalid('Utility [{0}] does not exist'.format(LENSE.REQUEST.data['uuid']))
+                return valid(json.dumps(Handlers.objects.filter(uuid=LENSE.REQUEST.data['uuid']).values()[0]))
                 
             # Return all utilities
             else:
                 return valid(json.dumps(list(Handlers.objects.all().values())))
         except Exception as e:
-            return invalid(self.api.log.exception('Failed to retrieve utilities listing: {0}'.format(str(e))))
+            return invalid(LENSE.API.LOG.exception('Failed to retrieve utilities listing: {0}'.format(str(e))))
