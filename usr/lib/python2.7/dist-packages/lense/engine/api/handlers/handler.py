@@ -5,6 +5,7 @@ from uuid import uuid4
 
 # Lense Libraries
 from lense import MODULE_ROOT
+from lense.common.exceptions import RequestError
 from lense.engine.api.handlers import RequestHandler
 from lense.common.objects.acl.models import ACLObjects
 from lense.common.objects.handler.models import Handlers
@@ -14,50 +15,41 @@ class Handler_Delete(RequestHandler):
     """
     Delete an existing API handler.
     """
-    def __init__(self):
-
-        # Target handler
-        self.handler = LENSE.REQUEST.data['uuid']
-
     def launch(self):
         """
         Worker method used for deleting a handler.
         """
+        target = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('uuid', None),
+            value = str,
+            error = 'Target handler UUID not provided',
+            code  = 400)
         
-        # Make sure the handler exists
-        if not Handlers.objects.filter(uuid=self.handler).count():
-            return invalid(LENSE.API.LOG.error('Could not delete handler [{0}], not found in database'.format(self.handler)))
-        
-        # Get the handler details
-        handler_row = Handlers.objects.filter(uuid=self.handler).values()[0]
+        # Look for the handler
+        handler = LENSE.REQUEST.ensure(LENSE.OBJECTS.HANDLER.get(uuid=target), 
+            value = object, 
+            error = 'Could not find handler: {0}'.format(target),
+            code  = 404)
         
         # Make sure the handler isn't protected
-        if handler_row['protected']:
-            return invalid('Cannot delete a protected handler')
+        LENSE.REQUEST.ensure(handler.protected, 
+            value = False, 
+            error = 'Cannot delete a protected handler', 
+            code  = 403)
         
         # Delete the handler
-        try:
-            Handlers.objects.filter(uuid=self.handler).delete()
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exeption('Failed to delete handler: {0}'.format(str(e))))
+        LENSE.REQUEST.ensure(handler.delete, 
+            call  = True, 
+            value = True, 
+            error = 'Failed to delete the handler: {0}'.format(target),
+            code  = 500)
         
-        # Construct and return the web data
-        web_data = {
-            'uuid': self.handler
-        }
-        return valid('Successfully deleted handler', web_data)
+        # OK
+        return valid('Successfully deleted handler', {'uuid': target})
 
 class Handler_Create(RequestHandler):
     """
     Create a new API handler.
     """
-    def __init__(self):
-
-    def _get_rmap(self):
-        if isinstance(LENSE.REQUEST.data['rmap'], (dict, list)):
-            return json.dumps(LENSE.REQUEST.data['rmap'])
-        return LENSE.REQUEST.data['rmap']
-
     def launch(self):
         """
         Worker method for creating a new handler.
@@ -79,31 +71,30 @@ class Handler_Create(RequestHandler):
             'allow_anon': LENSE.REQUEST.data.get('allow_anon', False),
             'locked':     False,
             'locked_by':  None,
-            'rmap':       self._get_rmap()
+            'rmap':       json.dumps(LENSE.REQUEST.data['rmap'])
         }
         
-        # Try to import the module and make sure it contains the class definition
-        mod_status = mod_has_class(params['mod'], params['cls'])
-        if not mod_status['valid']:
-            return mod_status
+        # Validate the handler object
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.HANDLER.check_object(params['mod'], params['cls']),
+            value = True,
+            error = 'Failed to validate handler object',
+            code  = 400)
         
         # Save the handler
-        try:
-            Handlers(**params).save()
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.HANDLER.create(**params),
+            value = True,
+            error = 'Failed to create handler',
+            code  = 500)
             
-            # Return the response
-            return valid('Successfully created handler', {
-                'uuid': params['uuid'],
-                'path': params['path'],
-                'method': params['method'],
-                'desc': params['desc'],
-                'enabled': params['enabled'],
-                'protected': params['protected']
-            })
-            
-        # Failed to save handler
-        except Exception as e:
-            return invalid('Failed to create handler: {0}'.format(str(e)))
+        # Return the response
+        return valid('Successfully created handler', {
+            'uuid': params['uuid'],
+            'path': params['path'],
+            'method': params['method'],
+            'desc': params['desc'],
+            'enabled': params['enabled'],
+            'protected': params['protected']
+        })
 
 class Handler_Save(RequestHandler):
     """
@@ -118,39 +109,34 @@ class Handler_Save(RequestHandler):
         """
         Worker method for saving changes to a handler.
         """
-
-        # Make sure the handler exists
-        if not Handlers.objects.filter(uuid=self.handler).count():
-            return invalid(LENSE.API.LOG.error('Could not save handler [{0}], not found in database'.format(self.handler)))
-
-        # Get the handler details
-        handler = Handlers.objects.filter(uuid=self.handler).values()[0]
+        handler = LENSE.REQUEST.ensure(LENSE.OBJECTS.HANDLER.get(LENSE.REQUEST.data['uuid']),
+            value = object,
+            error = 'Failed to retrieve handler',
+            code  = 500)
     
         # Update parameters
         params = {
-            'path': LENSE.REQUEST.data.get('path', handler['path']),
-            'method': LENSE.REQUEST.data.get('method', handler['method']),
-            'mod': LENSE.REQUEST.data.get('mod', handler['mod']),
-            'cls': LENSE.REQUEST.data.get('cls', handler['cls']),
-            'rmap': LENSE.REQUEST.data.get('rmap', handler['rmap']),
-            'enabled': LENSE.REQUEST.data.get('enabled', handler['enabled']),
-            'protected': LENSE.REQUEST.data.get('protected', handler['protected']),
-            'object': LENSE.REQUEST.data.get('object', handler['object']),
-            'object_key': LENSE.REQUEST.data.get('object_key', handler['object_key']),
-            'allow_anon': LENSE.REQUEST.data.get('allow_anon', handler['allow_anon'])
+            'path': LENSE.REQUEST.data.get('path', handler.path),
+            'method': LENSE.REQUEST.data.get('method', handler.method),
+            'mod': LENSE.REQUEST.data.get('mod', handler.mod),
+            'cls': LENSE.REQUEST.data.get('cls', handler.cls),
+            'rmap': LENSE.REQUEST.data.get('rmap', handler.rmap),
+            'enabled': LENSE.REQUEST.data.get('enabled', handler.enabled),
+            'protected': LENSE.REQUEST.data.get('protected', handler.protected),
+            'object': LENSE.REQUEST.data.get('object', handler.object),
+            'object_key': LENSE.REQUEST.data.get('object_key', handler.object_key),
+            'allow_anon': LENSE.REQUEST.data.get('allow_anon', handler.allow_anon)
         }
     
-        # Make sure the request map value is a string'
+        # Make sure the request map value is a string
         if isinstance(params['rmap'], dict):
             params['rmap'] = json.dumps(params['rmap'])
 
         # Attempt to update the handler
-        try:
-            Handlers.objects.filter(uuid=self.handler).update(**params)
-            
-        # Critical error when updating handler
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exception('Failed to update handler: {0}'.format(str(e))))
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.HANDLER.update(handler.uuid, params),
+            value = True,
+            error = 'Failed to update handler',
+            code  = 500)
 
         # Successfully updated handler
         return valid('Successfully updated handler.')
