@@ -9,56 +9,59 @@ from lense.common.utils import valid, invalid
 from lense.engine.api.handlers import RequestHandler
 from lense.common.objects.group.models import APIGroupMembers
 
+ERR_NO_UUID='No group UUID found in request data'
+
 class GroupMember_Remove(RequestHandler):
     """
     API class designed to handle remove group members.
     """
-    def __init__(self):
-        """
-        Construct the GroupMemberRemove utility
-        """
-
-        # Target group / user
-        self.group = LENSE.AUTH.ACL.target_object() 
-        self.user  = LENSE.REQUEST.data['user']
-
     def launch(self):
         """
         Worker method that handles the removal of members from the group.
         """
-
-        # Construct a list of authorized groups / users
-        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
-        auth_users  = LENSE.AUTH.ACL.authorized_objects('user', path='user', method=HTTP_GET)
-
-        # If the group does not exist or access denied
-        if not self.group in auth_groups.ids:
-            return invalid('Failed to remove user <{0}> from group <{1}>, group not found or access denied'.format(self.user, self.group))
-
-        # If the user does not exist or access denied
-        if not self.user in auth_users.ids:
-            return invalid('Failed to remove user <{0}> from group <{1}>, user not found or access denied'.format(self.user, self.group))
         
-        # If trying to remove the default administrator account from the default administrator group
-        if (self.user == USERS.ADMIN.UUID) and (self.group == GROUPS.ADMIN.UUID):
-            return invalid('Cannot remove the default administrator account from the default administrator group')
+        # Target group
+        group = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('group', False),
+            error = 'No group UUID found in request data',
+            code  = 400)
         
+        # Target user
+        user = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('user', False),
+            error = 'No user UUID found in request data',
+            code  = 400)
+
         # Get the group object
-        group = LENSE.GROUP.get(self.group)
+        group = LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.get(uuid=group),
+            error = 'Could not locate group object {0}'.format(group),
+            debug = 'Group object {0} exists, retrieved object'.format(group),
+            code  = 404)
+
+        # Cannot remove admin user from admin group
+        remove_admin = False if not (user.uuid == USERS.ADMIN.UUID) and not (group == GROUPS.ADMIN.UUID) else True
+
+        # Cannot remove the default administrator user from administrator group
+        LENSE.REQUEST.ensure(remove_admin,
+            value = False,
+            error = 'Cannot remove administrator account from administrator group',
+            code  = 500)
         
         # Check if the user is already a member of the group
-        if not self.user in group.members_list():
-            return invalid('User <{0}> is not a member of group <{1}>'.format(self.user, self.group))
-
+        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(group.uuid, user.uuid),
+            error = 'User {0} is not a member of group {1}'.format(user.uuid, group.uuid),
+            code  = 400)
+        
         # Remove the user from the group
-        group.members_unset(LENSE.USER.get(self.user))
+        LENSE.REQUEST.ensure(LENSE.GROUP.remove_member(group.uuid, user.uuid),
+            error = 'Failed to remove user {0} from group {1}'.format(user.uuid, group.uuid),
+            log   = 'Removed user {0} from group {1}'.format(user.uuid, group.uuid),
+            code  = 500)
         
         # Return the response
         return valid('Successfully removed group member', {
             'group': {
                 'name':   group.name,
-                'uuid':   self.group,
-                'member': self.user
+                'uuid':   group.uuid,
+                'member': user.uuid
             }
         })
 
@@ -66,58 +69,44 @@ class GroupMember_Add(RequestHandler):
     """
     API class designed to handle adding group members.
     """
-    def __init__(self):
-        """
-        Construct the GroupMemberAdd utility
-        """
-
-        # Target group / user
-        self.group = LENSE.AUTH.ACL.target_object() 
-        self.user  = LENSE.REQUEST.data['user']
-
     def launch(self):
         """
         Worker method that handles the addition of members to the group.
         """
-
-        # Construct a list of authorized groups / users
-        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
-        auth_users  = LENSE.AUTH.ACL.authorized_objects('user', path='user', method=HTTP_GET)
-
-        # Get the group handler
-        group = LENSE.GROUP.set(self.group)
-
-        # If the group does not exist or access denied
-        if not group.id in auth_groups.ids:
-            return invalid('Failed to add user <{0}> to group <{1}>, group not found or access denied'.format(self.user, group.id))
-
-        # If the user does not exist or access denied
-        if not self.user in auth_users.ids:
-            return invalid('Failed to add user <{0}> to group <{1}>, user not found or access denied'.format(self.user, group.id))
         
-        # Get the group / user object
-        group = LENSE.GROUP.get(self.group)
-        user  = LENSE.USER.get(self.user)
+        # Target group
+        group = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('group', False),
+            error = 'No group UUID found in request data',
+            code  = 400)
         
-        # Make sure the user not already a group member
-        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(self.group, self.members),
-            value = False,
-            error = 'User "{0}" is already a member of group "{1}"'.format(self.user, self.group)
-        )
+        # Target user
+        user = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('user', False),
+            error = 'No user UUID found in request data',
+            code  = 400)
+
+        # Get the group object
+        group = LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.get(uuid=group),
+            error = 'Could not locate group object {0}'.format(group),
+            debug = 'Group object {0} exists, retrieved object'.format(group),
+            code  = 404)
         
         # Check if the user is already a member of the group
-        if LENSE.GROUP.has_members(self.group, self.user):
-            return invalid('User <{0}> is already a member of group <{1}>'.format(self.user, self.group))
+        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(group.uuid, user.uuid),
+            value = False,
+            error = 'User {0} is already a member of group {1}'.format(user.uuid, group.uuid),
+            code  = 400)
 
         # Add the user to the group
-        if not LENSE.GROUP.add_member(self.group, self.user):
-            return invalid(LENSE.API.LOG.error('Failed to add user "{0}" to group "{1}"'.format(self.user, self.group)))
+        LENSE.REQUEST.ensure(LENSE.GROUP.add_member(group.uuid, user.uuid),
+            error = 'Failed to add user {0} to group {1}'.format(user.uuid, group.uuid),
+            log   = 'Added user {0} to group {1}'.format(user.uuid, group.uuid),
+            code  = 500)
         
         # Return the response
         return valid('Successfully added group member', {
             'group': {
                 'name':   group.name,
-                'uuid':   self.group,
+                'uuid':   group.uuid,
                 'member': user.uuid
             }
         })
@@ -126,40 +115,39 @@ class Group_Delete(RequestHandler):
     """
     API class designed to handle deleting groups.
     """
-    def __init__(self):
-        """
-        Construct the GroupDelete utility
-        """
-
-        # Target group
-        self.group = LENSE.AUTH.ACL.target_object()
-
     def launch(self):
         """
         Worker method that handles the deletion of the group.
         """
+        target = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('uuid', False),
+            error = ERR_NO_UUID,
+            debug = 'Launching {0} for group object {1}'.format(__name__, LENSE.REQUEST.data['uuid']),
+            code  = 400)
 
-        # Construct a list of authorized groups
-        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
+        # Get the group
+        group = LENSE.REQUEST.ensure(LENSE.GROUP.get(target),
+            error = 'Could not locate group object {0}'.format(target),
+            debug = 'Group object {0} exists, retrieved object'.format(target),
+            code  = 404)
 
-        # If the group does not exist or access denied
-        if not self.group in auth_groups.ids:
-            return invalid('Failed to delete group <{0}>, not found in database or access denied'.format(self.group))
+        # Make sure the group isn't protected
+        LENSE.REQUEST.ensure(group.protected, 
+            value = False,
+            error = 'Cannot deleted protected group {0}'.format(group.uuid),
+            code  = 400)
 
-        # If the group is protected
-        if auth_groups.extract(self.group)['protected']:
-            return invalid('Failed to delete group <{0}>, group is protected'.format(self.group))
-
-        # If the group has any members
-        if LENSE.GROUP.has_members(self.group):
-            return invalid('Failed to delete group "{0}", must remove all group members first'.format(self.group))
+        # Make sure the group has no members
+        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(group.uuid),
+            value = False,
+            error = 'Cannot delete group {0}, still has members'.format(group.uuid),
+            code  = 400)
 
         # Delete the group
-        LENSE.GROUP.delete(self.group)
+        LENSE.GROUP.delete(group.uuid)
         
         # Return the response
         return valid('Successfully deleted group', {
-            'uuid': self.group
+            'uuid': group.uuid
         })
 
 class Group_Update(RequestHandler):
@@ -292,71 +280,62 @@ class Group_Create(RequestHandler):
         """
             
         # Make sure the group doesn't exist
-        if LENSE.GROUP.exists(LENSE.REQUEST.data['name']):
-            return invalid(LENSE.API.LOG.error('Group already exists: {0}'.format(LENSE.REQUEST.data['name'])))
+        LENSE.REQUEST.ensure(LENSE.GROUP.exists(LENSE.REQUEST.data['name']),
+            value = False,
+            error = 'Cannot create group, name {0} already exists'.format(LENSE.REQUEST.data['name']),
+            code  = 400)
         
-        # Generate a unique ID for the group
+        # Default group UUID
         group_uuid = str(uuid4())
         
         # If manually specifying a UUID
         if LENSE.REQUEST.data.get('uuid', False):
-            if LENSE.GROUP.exists(LENSE.REQUEST.data['uuid']):
-                return invalid(LENSE.API.LOG.error('Cannot create group with duplicate UUID: {0}'.format(LENSE.REQUEST.data['uuid'])))
-        
+            LENSE.REQUEST.ensure(LENSE.GROUP.exists(LENSE.REQUEST.data['uuid']),
+                value = False,
+                error = 'Cannot create group, UUID {0} already exists'.format(LENSE.REQUEST.data['name']),
+                code  = 400)
+            
             # Set the manual UUID
             group_uuid = LENSE.REQUEST.data['uuid']
             
+        # Group attributes
+        attrs = {
+            'uuid': group_uuid,
+            'name': LENSE.REQUEST.data['name'],
+            'desc': LENSE.REQUEST.data['desc'],
+            'protected': LENSE.REQUEST.data.get('protected', False)
+        }
+            
         # Create the group
-        if not LENSE.GROUP.create(**{
-           'uuid': group_uuid,
-           'name': LENSE.REQUEST.data['name'],
-           'desc': LENSE.REQUEST.data['desc'],
-           'protected': LENSE.REQUEST.data.get('protected', False)                  
-        }):
-            return invalid(LENSE.API.LOG.error('Failed to create group: {0}'.format(str(e))))
+        LENSE.REQUEST.ensure(LENSE.GROUP.create(**attrs),
+            error = 'Failed to create group',
+            log   = 'Created group {0}'.format(attrs['uuid']),
+            code  = 500)
         
         # Return the response
-        return valid('Successfully created group', {
-            'name':      LENSE.REQUEST.data['name'],
-            'desc':      LENSE.REQUEST.data['desc'],
-            'uuid':      str(group_uuid),
-            'protected': LENSE.REQUEST.data.get('protected', False)
-        })
+        return valid('Successfully created group', attrs)
 
 class Group_Get(RequestHandler):
     """
     API class designed to retrieve the details of a single group, or a list of all group
     details.
     """
-    def __init__(self):
-        """
-        Construct the GroupGet utility
-        """
-        
-        # Target group
-        self.group = LENSE.AUTH.ACL.target_object()
-            
     def launch(self):
         """
         Worker method for retrieving group details.
         """
+        target = LENSE.REQUEST.data.get('uuid', None)
         
-        # Construct a list of authorized groups
-        auth_groups = LENSE.AUTH.ACL.authorized_objects('group', path='group', method=HTTP_GET)
+        # Retrieving all groups
+        if not target:
+            return valid(LENSE.OBJECTS.GROUP.get())
         
-        # If retrieving details for a single group
-        if self.group:
-            
-            # If the group does not exist or access denied
-            if not self.group in auth_groups.ids:
-                return invalid('Group <{0}> not found or access denied'.format(self.group))
-            
-            # Return the group details
-            return valid(auth_groups.extract(self.group))
-            
-        # If retrieving details for all groups
-        else:
+        # Make sure the target group exists
+        group = LENSE.REQUEST.ensure(LENSE.GROUP.get(target),
+            error = 'Could not locate group object {0}'.format(target),
+            debug = 'Group object {0} exists, retrieved object'.format(target),
+            code  = 404)
         
-            # Return all groups
-            return valid(auth_groups.details)
+        # Return the group details
+        return valid(group)
             

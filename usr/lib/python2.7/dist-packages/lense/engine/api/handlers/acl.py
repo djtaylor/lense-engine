@@ -7,60 +7,53 @@ from lense.common.objects.handler.models import Handlers
 from lense.common.utils import valid, invalid, mod_has_class
 from lense.common.objects.acl.models import ACLKeys, ACLObjects, ACLGlobalAccess, ACLObjectAccess
 
+ERR_NO_UUID='No ACL object UUID found in request data'
+
 class ACLObjects_Delete(RequestHandler):
     """
     Delete an existing ACL object definition.
     """
-    def __init__(self):
-        
-        # Get the target ACL object
-        self.type = LENSE.REQUEST.data.get('type')
-
     def launch(self):
         """
         Worker method for deleting an ACL object definition.
         """
+        target = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('uuid', False),
+            error = ERR_NO_UUID,
+            debug = 'Launching {0} for handler object {1}'.format(__name__, LENSE.REQUEST.data['uuid']),
+            code  = 400)
         
-        # If the ACL object doesn't exist
-        if not ACLObjects.objects.filter(type=self.type).count():
-            return invalid('Cannot delete ACL object [{0}], not found in database'.format(self.type))
-        
-        # Get the ACL object definition
-        acl_object = ACLObjects.objects.filter(type=self.type).values(detailed=True)[0]
-        
-        # If the ACL object has any assigned object
-        if acl_object['objects']:
-            return invalid('Cannot delete ACL object [{0}] definition, contains [{1}] child objects'.format(self.type, str(len(acl_object['objects']))))
+        # Get the ACL object
+        acl_object = LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
+            error = 'Could not locate ACL object {0}'.format(target),
+            debug = 'ACL object {0} exists, retrieved object'.format(target),
+            code  = 404)
+    
+        # Make sure it has no child entries
+        LENSE.REQUEST.ensure(acl_object.objects, value=dict,
+            error = 'Cannot delete ACL object {0}, contains child entries'.format(target),
+            debug = 'ACL object {0} contains no children, delete OK'.format(target),
+            code  = 400)
 
         # Delete the ACL object definition
-        try:
-            ACLObjects.objects.filter(type=self.type).delete()
-            
-        # Critical error when deleting ACL object
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exception('Failed to delete ACL object [{0}] definition: {1}'.format(self.type, str(e))))
-
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.OBJECTS.delete(uuid=target),
+            error = 'Failed to delete ACL {0}'.format(target),
+            log   = 'Deleted ACL object {0}'.format(target),
+            code  = 500)
+        
         # Return the response
         return valid('Successfully deleted ACL object definition', {
-            'type': self.type
+            'uuid': target
         })
 
 class ACLObjects_Create(RequestHandler):
     """
     Create a new ACL object definition.
-    """
-    def __init__(self):
-        
-        # API object attributes
-        self.attr = self._set_attr()
-        
-    def _set_attr(self):
+    """  
+    def launch(self):
         """
-        Set the attributes for the new ACL object.
+        Worker method for creating a new ACL object definition.
         """
-        
-        # Attribute keys
-        attr_keys = [
+        attrs = LENSE.REQUEST.map_data([
             'type', 
             'name', 
             'acl_mod', 
@@ -69,72 +62,83 @@ class ACLObjects_Create(RequestHandler):
             'obj_mod', 
             'obj_cls', 
             'obj_key',
-            'def_acl'
-        ]
-        
-        # Construct and return the attributes object
-        return {k:LENSE.REQUEST.data.get(k) for k in attr_keys}
-        
-    def launch(self):
-        """
-        Worker method for creating a new ACL object definition.
-        """
+            'def_acl'                            
+        ])
         
         # Make sure the type definition is not already used
-        if ACLObjects.objects.filter(type=self.attr['type']).count():
-            return invalid('Failed to create ACL object type [{0}], already defined'.format(self.attr['type']))
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.OBJECT.exists(attrs['type']), 
+            value = False,
+            error = 'ACL object type {0} already exists'.format(attrs['type']),
+            code  = 400)
         
-        # Check the ACL and object module/class definitions
-        for key,status in {
-            'acl': mod_has_class(self.attr['acl_mod'], self.attr['acl_cls'], no_launch=True),
-            'obj': mod_has_class(self.attr['obj_mod'], self.attr['obj_cls'], no_launch=True)
-        }.iteritems():
-            if not status['valid']:
-                return status
+        # Validate the object module/class definitions
+        for k in ['acl', 'obj']:
+            mod = '{0}_mod'.format(k)
+            cls = '{0}_cls'.format(k)
+            LENSE.REQUEST.ensure(mod_has_class(attrs[mod], attrs[cls], no_launch=True),
+                error = 'Could not find object module/class',
+                code  = 500)
         
         # Set a unique ID for the ACL object
-        self.attr['uuid'] = str(uuid4())
+        attrs['uuid'] = str(uuid4())
         
         # If a default ACL UUID is supplied
-        if ('def_acl' in LENSE.REQUEST.data):
-            if not ACLKeys.objects.filter(uuid=self.attr['def_acl']).count():
-                return invalid('Failed to create ACL object type [{0}], default ACL [{1}] not found'.format(self.attr['type'], self.attr['def_acl']))
+        if LENSE.REQUEST.data.get('def_acl', False):
+            def_acl = LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.KEYS.get(uuid=attrs['def_acl']),
+                error = 'Default ACL {0} not found'.format(attrs['def_acl']),
+                debug = 'Discovered default ACL key {0}'.format(attrs['def_acl']),
+                code  = 404)
         
-            # Get the default ACL object
-            self.attr['def_acl'] = ACLKeys.objects.get(uuid=LENSE.REQUEST.data['def_acl'])
-            
-            # Make sure the ACL has object type authentication enabled
-            if not self.attr['def_acl'].type_object:
-                return invalid('Failed to create ACL object type [{0}], default ACL [{1}] must have object authentication enabled'.format(self.attr['type'], self.attr['def_acl']['uuid']))
+            # Get the default ACL key
+            attrs['def_acl'] = def_acl
         
-        # Create the ACL object definition
-        try:
-            ACLObjects(**self.attr).save()
-            
-        # Critical error when saving ACL object definition
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exception('Failed to create ACL object type [{0}]: {1}'.format(self.attr['type'], str(e))))
+            # Make sure object level authentication is enabled
+            LENSE.REQUEST.ensure(def_acl.type_object, 
+                error = 'Default ACL {0} must have object authentication enabled'.format(def_acl.uuid),
+                code  = 400)
+        
+        # Create the ACL object
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.OBJECT.create(**attrs),
+            error = 'Failed to create ACL object',
+            log   = 'Created ACL object {0}'.format(attrs['uuid']),
+            code  = 500)
         
         # Return the response
         return valid('Successfully created ACL object definition', {
-            'type': self.attr['type'],
-            'uuid': self.attr['uuid'],
-            'name': self.attr['name']
+            'type': attrs['type'],
+            'uuid': attrs['uuid'],
+            'name': attrs['name']
         })
 
 class ACLObjects_Update(RequestHandler):
     """
     Update attributes for an ACL object.
     """
-    def __init__(self):
-
-        # Target object type
-        self.type = LENSE.REQUEST.data.get('type')
-
     def launch(self):
         """
         Worker method for updating an ACL object.
         """
+        target = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('uuid', False),
+            error = ERR_NO_UUID,
+            debug = 'Launching {0} for handler object {1}'.format(__name__, LENSE.REQUEST.data['uuid']),
+            code  = 400)
+        
+        # Get the ACL object
+        acl_object = LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.get_objects(uuid=target),
+            error = 'Could not locate ACL object type {0}'.format(target),
+            debug = 'ACL object {0} exists, retrieved object'.format(target),
+            code  = 404)
+
+        # Delete the ACL object definition
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.delete_object(uuid=target),
+            error = 'Failed to delete ACL {0}'.format(target),
+            log   = 'Deleted ACL object {0}'.format(target),
+            code  = 500)
+        
+        # Return the response
+        return valid('Successfully updated ACL object definition', {
+            'uuid': target
+        })
         
         # Make sure the object definition exists
         if not ACLObjects.objects.filter(type=self.type).count():
@@ -202,57 +206,44 @@ class ACLObjects_Get(RequestHandler):
     """
     Retrieve a list of supported ACL object types.
     """
-    def __init__(self):
-
-        # Type filter / detailed return
-        self.type     = LENSE.REQUEST.data.get('type')
-        self.detailed = LENSE.REQUEST.data.get('detailed')
-
-        # Extract all ACL objects
-        self.objects  = list(ACLObjects.objects.all().values(detailed=self.detailed))
-
     def launch(self):
         """
         Worker method for returning a list of ACL object types.
         """
+        target   = LENSE.REQUEST.data.get('uuid', None)
+        detailed = LENSE.REQUEST.data.get('detailed', False)
         
-        # If retrieving a specific object type
-        if self.type:
-            object_details = [x for x in self.objects if x['type'] == self.type]
-            
-            # Make sure the object type exists
-            if not object_details:
-                return invalid('Could not locate ACL object of type [{0}] in the database'.format(self.type))
-            
-            # Return the ACL object
-            return valid(object_details[0])
+        # Get all ACL objects
+        if not target:
+            return valid(LENSE.OBJECTS.ACL.OBJECTS.get())
         
-        # Retrieving all ACL object definitions
-        else:
-            
-            # Return ACL object definitions
-            return valid(self.objects)
+        # Get the ACL object
+        acl_object = LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
+            error = 'Could not locate ACL object {0}'.format(target),
+            debug = 'ACL object {0} exists, retrieved object'.format(target),
+            code  = 404)
+        
+        # Return the ACL object
+        return valid(acl_object)
      
-class ACL_Update(RequestHandler):
+class ACLKeys_Update(RequestHandler):
     """
     Update an existing ACL definition.
-    """
-    def __init__(self):
-        
-        # Target ACL
-        self.acl = LENSE.REQUEST.data['uuid']
-        
+    """ 
     def launch(self):
         """
         Worker method for updating an existing ACL definition.
         """
+        target = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('uuid', False),
+            error = ERR_NO_UUID,
+            debug = 'Launching {0} for ACL keys object {1}'.format(__name__, LENSE.REQUEST.data['uuid']),
+            code  = 400)
         
-        # Make sure the ACL exists
-        if not ACLKeys.objects.filter(uuid=self.acl).count():
-            return invalid('Failed to update ACL [{0}], not found in database'.format(self.acl))
-        
-        # Get the ACL details
-        acl_row  = ACLKeys.objects.filter(uuid=self.acl).values()[0]
+        # Get the ACL key
+        acl_key = LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
+            error = 'Could not locate ACL key {0}'.format(target),
+            debug = 'ACL key {0} exists, retrieved object'.format(target),
+            code  = 404)
         
         # ACL parameters
         params = {
@@ -262,24 +253,23 @@ class ACL_Update(RequestHandler):
             'type_global': LENSE.REQUEST.data.get('type_global', acl_row['type_global'])
         }
         
-        # Update ACL details
-        try:
-            ACLKeys.objects.filter(uuid=self.acl).update(**params)
-            LENSE.API.LOG.info('Updated properties for ACL [{0}]'.format(self.acl))
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exception('Failed to update details for ACL [{0}]: {1}'.format(self.acl, str(e))))
+        # Update the ACL key
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.KEYS.update(target, **params),
+            error = 'Failed to update ACL key {0}'.format(target),
+            log   = 'Updated ACL key {0}'.format(target),
+            code  = 500)
         
         # If updating ACL handlers
-        if 'handlers' in LENSE.REQUEST.data:
-            handlers = LENSE.REQUEST.data['handlers']
-            
+        if LENSE.REQUEST.data.get('handlers', None):
+            _handlers = LENSE.REQUEST.data.get('handler')
+        
             # Get all handlers
-            handler_all = list(Handlers.objects.all().values())
+            handlers  = LENSE.OBJECTS.HANDLER.get()
             
             # Only support one object type per ACL object access definition
-            if 'object' in handlers:
+            if 'object' in _handlers:
                 obj_last = None
-                for handler in handler_all:
+                for handler in handlers:
                     if (handler['uuid'] in handlers['object']) and (handler['object']):
                         if (obj_last == None) or (obj_last == handler['object']):
                             obj_last = handler['object']
@@ -287,82 +277,59 @@ class ACL_Update(RequestHandler):
                             return invalid('Object type mismatch <{0} -> {1}>, ACLs only support one object type per definition.'.format(obj_last, handler['object']))
             
             # Get the current ACL object
-            acl_obj = ACLKeys.objects.get(uuid=self.acl)
+            acl_obj = LENSE.OBJECTS.ACL.OBJECT.get(uuid=target)
             
             # Update ACL handlers
             for acl_type, acl_handler in handlers.iteritems():
-                LENSE.API.LOG.info('Updating access type [{0}] for ACL [{1}]'.format(acl_type, self.acl))
-                try:
                     
-                    # Global
-                    if acl_type == 'global':
-                        
-                        # Clear old definitions
-                        ACLGlobalAccess.objects.filter(acl=self.acl).delete()
-                        
-                        # Put in new definitions
-                        for handler in acl_handler:
-                            ACLGlobalAccess(
-                                acl     = acl_obj,
-                                handler = Handlers.objects.get(uuid=handler)
-                            ).save()
-                    
-                    # Object
-                    if acl_type == 'object':
-                        
-                        # Clear old definitions
-                        ACLObjectAccess.objects.filter(acl=self.acl).delete()
-                        
-                        # Put in new definitions
-                        for handler in acl_handler:
-                            ACLObjectAccess(
-                                acl     = acl_obj,
-                                handler = Handlers.objects.get(uuid=handler)
-                            ).save()
-                    
-                    # All handlers updated
-                    LENSE.API.LOG.info('Updated all handlers for ACL [{0}]'.format(self.acl))
-                    
-                # Failed to update handlers
-                except Exception as e:
-                    return invalid(LENSE.API.LOG.exception('Failed to update [{0}] handlers for ACL [{1}]: {2}'.format(acl_type, self.acl, str(e))))
-        
+                # Clear old definitions
+                LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.ACCESS(acl_type).delete(acl=target),
+                    error = 'Failed to clear old ACL definitions',
+                    debug = 'Cleared old ACL definitions',
+                    code  = 500)
+                
+                # Create new definitions
+                for handler in acl_handler:
+                    LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.ACCESS(acl_type).create(**{
+                        'acl': acl_obj,
+                        'handler': LENSE.OBJECTS.HANDLER.get(uuid=handler)
+                    }), error = 'Failed to create new {0} ACL access definition'.format(acl_type),
+                        debug = 'Created new {0} ACL access definition'.format(acl_type),
+                        code  = 500)
+                
         # ACL updated
         return valid('Succesfully updated ACL')
         
-class ACL_Delete(RequestHandler):
+class ACLKeys_Delete(RequestHandler):
     """
-    Delete an existing ACL.
-    """            
-    def __init__(self):
-        
-        # Target ACL
-        self.acl = LENSE.REQUEST.data['uuid']
-        
+    Delete an existing ACL key.
+    """ 
     def launch(self):
         """
         Worker method for deleting an existing ACL.
         """
+        target = LENSE.REQUEST.ensure(LENSE.REQUEST.data.get('uuid', False),
+            error = ERR_NO_UUID,
+            debug = 'Launching {0} for ACL key object {1}'.format(__name__, LENSE.REQUEST.data['uuid']),
+            code  = 400)
         
         # Make sure the ACL exists
-        if not ACLKeys.objects.filter(uuid=self.acl).count():
-            return invalid('Failed to delete ACL [{0}], not found in database'.format(self.acl))
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.KEY.exists(uuid=target),
+            error = 'Cannot delete ACL {0}, does not exist'.format(target),
+            code  = 404)
         
-        # Delete the ACL definition
-        try:
-            ACLKeys.objects.filter(uuid=self.acl).delete()
-            LENSE.API.LOG.info('Deleted ACL definition [{0}]'.format(self.acl))
-            
-            # ACL deleted
-            return valid('Successfully deleted ACL', {
-                'uuid': self.acl
-            })
-            
-        # Failed to delete ACL
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exception('Failed to delete ACL [{0}]: {1}'.format(self.acl, str(e))))
+        # Delete the ACL key
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.KEY.delete(uuid=target),
+            error = 'Failed to delete ACL key {0}'.format(target),
+            log   = 'Deleted ACL key {0}'.format(target),
+            code  = 500)
         
-class ACL_Create(RequestHandler):
+        # OK
+        return valid('Successfully deleted ACL', {
+            'uuid': target
+        })
+        
+class ACLKeys_Create(RequestHandler):
     """
     Create a new ACL definition.
     """
@@ -371,10 +338,7 @@ class ACL_Create(RequestHandler):
         Worker method for handling ACL definition creation.
         """
         
-        # Generate a UUID for the ACL
-        acl_uuid = str(uuid4())
-        
-        # ACL parameters
+        # ACL key parameters
         params = {
             'uuid': str(uuid4()),
             'name': LENSE.REQUEST.data['name'],
@@ -384,14 +348,16 @@ class ACL_Create(RequestHandler):
         }
         
         # Make sure the ACL doesn't exist
-        if ACLKeys.objects.filter(name=params['name']).count():
-            return invalid('ACL [{0}] is already defined'.format(acl_name))
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.KEY.exists(params['name']),
+            value = False,
+            error = 'ACL key {0} is already defined'.format(params['name']),
+            code  = 400)
 
         # Create the ACL key entry
-        try:
-            ACLKeys(**params).save()
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exception('Failed to create ACL definition: {0}'.format(str(e))))
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.KEY.create(**params),
+            error = 'Failed to create ACL key {0}'.format(params['name']),
+            log   = 'Created ACL key {0}'.format(params['name']),
+            code  = 500)
             
         # Create ACL definition
         return valid('Create new ACL definition', {
@@ -400,40 +366,25 @@ class ACL_Create(RequestHandler):
             'desc': params['desc']
         })
 
-class ACL_Get(RequestHandler):
+class ACLKeys_Get(RequestHandler):
     """
     Return an object with all ACL definitions.
     """
-    def __init__(self):
-        
-        # Target ACL definition
-        self.acl = LENSE.AUTH.ACL.target_object()
-
     def launch(self):
         """
         Worker method used to construct the ACL definitions object.
         """
+        target = LENSE.REQUEST.data.get('uuid', None)
         
-        # Construct the ACL object
-        try:
-            
-            # If retrieving a single ACL definition
-            if self.acl:
-                
-                # Get the ACL definition
-                acl_definition = ACLKeys.objects.filter(uuid=self.acl).values()
-                
-                # If the ACL definition doesn't exist
-                if not acl_definition:
-                    return invalid('Could not locate ACL [{0}] in the database'.format(self.acl))
-                
-                # Return the ACL definition
-                return valid(json_dumps(acl_definition[0]))
-            
-            # If retrieving all ACL definitions
-            else:
-                return valid(json_dumps(list(ACLKeys.objects.all().values())))
-            
-        # Error during ACL construction
-        except Exception as e:
-            return invalid(LENSE.API.LOG.exception('Failed to retrieve ACL definition(s): {0}'.format(str(e))))
+        # Get all ACL keys
+        if not target:
+            return valid(LENSE.OBJECTS.ACL.KEYS.get())
+        
+        # Get the ACL key
+        acl_key = LENSE.REQUEST.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
+            error = 'Could not locate ACL key {0}'.format(target),
+            debug = 'ACL key {0} exists, retrieved object'.format(target),
+            code  = 404)
+        
+        # Return the ACL key
+        return valid(acl_key)
