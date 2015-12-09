@@ -280,7 +280,7 @@ class Group_Create(RequestHandler):
         """
             
         # Make sure the group doesn't exist
-        LENSE.REQUEST.ensure(LENSE.GROUP.exists(LENSE.REQUEST.data['name']),
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.exists(name=LENSE.REQUEST.data['name']),
             value = False,
             error = 'Cannot create group, name {0} already exists'.format(LENSE.REQUEST.data['name']),
             code  = 400)
@@ -290,7 +290,7 @@ class Group_Create(RequestHandler):
         
         # If manually specifying a UUID
         if LENSE.REQUEST.data.get('uuid', False):
-            LENSE.REQUEST.ensure(LENSE.GROUP.exists(LENSE.REQUEST.data['uuid']),
+            LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.exists(uuid=LENSE.REQUEST.data['uuid']),
                 value = False,
                 error = 'Cannot create group, UUID {0} already exists'.format(LENSE.REQUEST.data['name']),
                 code  = 400)
@@ -306,10 +306,13 @@ class Group_Create(RequestHandler):
             'protected': LENSE.REQUEST.data.get('protected', False)
         }
             
+        # Attributes string for logging
+        attrs_str = 'uuid={0}, name={1}, protected={2}'.format(attrs['uuid'], attrs['name'], repr(attrs['protected']))
+            
         # Create the group
-        LENSE.REQUEST.ensure(LENSE.GROUP.create(**attrs),
-            error = 'Failed to create group',
-            log   = 'Created group {0}'.format(attrs['uuid']),
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.create(**attrs),
+            error = 'Failed to create group: {0}'.format(attrs_str),
+            log   = 'Created group: {0}'.format(attrs_str),
             code  = 500)
         
         # Return the response

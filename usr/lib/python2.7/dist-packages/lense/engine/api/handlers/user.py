@@ -205,7 +205,7 @@ class User_Create(RequestHandler):
                 code  = 400)
             
         # If setting a user supplied UUID
-        if not LENSE.REQUEST.data.get('uuid', False):
+        if LENSE.REQUEST.data.get('uuid', False):
             LENSE.REQUEST.ensure(LENSE.OBJECTS.USER.exists(uuid=LENSE.REQUEST.data['uuid']),
                 value = False,
                 error = 'Cannot create user with duplicate UUID: {0}'.format(LENSE.REQUEST.data['uuid']),
@@ -213,7 +213,6 @@ class User_Create(RequestHandler):
         
         # Mape new user attributes
         attrs = LENSE.REQUEST.map_data([
-            'group', 
             'username', 
             'email', 
             'password'                          
@@ -221,6 +220,8 @@ class User_Create(RequestHandler):
         
         # Set the user UUID
         attrs['uuid'] = LENSE.REQUEST.data.get('uuid', None)
+        if not attrs['uuid']:
+            del attrs['uuid']
         
         # Create the user account
         user = LENSE.REQUEST.ensure(LENSE.OBJECTS.USER.create(**attrs),

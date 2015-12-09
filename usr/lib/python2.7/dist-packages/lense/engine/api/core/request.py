@@ -110,7 +110,7 @@ class RequestManager(object):
             
         # Critical error during validation / authentication
         except Exception as e:
-            return LENSE.HTTP.exception()
+            return LENSE.HTTP.exception(str(e))
         
         # Validation / authentication error
         if validate_error: return validate_error
@@ -126,6 +126,7 @@ class RequestManager(object):
             
         # Critical error when running handler
         except Exception as e:
+            LENSE.LOG.exception(str(e))
             return LENSE.HTTP.exception()
         
         # Close any open SocketIO connections
