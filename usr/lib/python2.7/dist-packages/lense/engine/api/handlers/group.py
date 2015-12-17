@@ -46,12 +46,12 @@ class GroupMember_Remove(RequestHandler):
             code  = 500)
         
         # Check if the user is already a member of the group
-        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(group.uuid, user.uuid),
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.has_member(group.uuid, user.uuid),
             error = 'User {0} is not a member of group {1}'.format(user.uuid, group.uuid),
             code  = 400)
         
         # Remove the user from the group
-        LENSE.REQUEST.ensure(LENSE.GROUP.remove_member(group.uuid, user.uuid),
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.remove_member(group.uuid, user.uuid),
             error = 'Failed to remove user {0} from group {1}'.format(user.uuid, group.uuid),
             log   = 'Removed user {0} from group {1}'.format(user.uuid, group.uuid),
             code  = 500)
@@ -91,13 +91,13 @@ class GroupMember_Add(RequestHandler):
             code  = 404)
         
         # Check if the user is already a member of the group
-        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(group.uuid, user.uuid),
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.has_member(group.uuid, user.uuid),
             value = False,
             error = 'User {0} is already a member of group {1}'.format(user.uuid, group.uuid),
             code  = 400)
 
         # Add the user to the group
-        LENSE.REQUEST.ensure(LENSE.GROUP.add_member(group.uuid, user.uuid),
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.add_member(group.uuid, user.uuid),
             error = 'Failed to add user {0} to group {1}'.format(user.uuid, group.uuid),
             log   = 'Added user {0} to group {1}'.format(user.uuid, group.uuid),
             code  = 500)
@@ -125,7 +125,7 @@ class Group_Delete(RequestHandler):
             code  = 400)
 
         # Get the group
-        group = LENSE.REQUEST.ensure(LENSE.GROUP.get(target),
+        group = LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.get(uuid=target),
             error = 'Could not locate group object {0}'.format(target),
             debug = 'Group object {0} exists, retrieved object'.format(target),
             code  = 404)
@@ -137,13 +137,13 @@ class Group_Delete(RequestHandler):
             code  = 400)
 
         # Make sure the group has no members
-        LENSE.REQUEST.ensure(LENSE.GROUP.has_members(group.uuid),
-            value = False,
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.get_members(group.uuid),
+            value = [],
             error = 'Cannot delete group {0}, still has members'.format(group.uuid),
             code  = 400)
 
         # Delete the group
-        LENSE.GROUP.delete(group.uuid)
+        LENSE.OBJECTS.GROUP.delete(uuid=group.uuid)
         
         # Return the response
         return valid('Successfully deleted group', {
@@ -245,7 +245,7 @@ class Group_Update(RequestHandler):
             return invalid('Failed to update group <{0}>, not found in database or access denied'.format(self.group))
         
         # Load the group object
-        self.group_obj = LENSE.GROUP.get(self.group)
+        self.group_obj = LENSE.OBJECTS.GROUP.get(uuid=self.group)
         
         # Update the group profile
         profile_status = self._update_profile()
@@ -280,37 +280,37 @@ class Group_Create(RequestHandler):
         """
             
         # Make sure the group doesn't exist
-        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.exists(name=LENSE.REQUEST.data['name']),
+        self.ensure(LENSE.OBJECTS.GROUP.exists(name=self.get_data('name')),
             value = False,
-            error = 'Cannot create group, name {0} already exists'.format(LENSE.REQUEST.data['name']),
+            error = 'Cannot create group, name {0} already exists'.format(self.get_data('name')),
             code  = 400)
         
         # Default group UUID
         group_uuid = str(uuid4())
         
         # If manually specifying a UUID
-        if LENSE.REQUEST.data.get('uuid', False):
-            LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.exists(uuid=LENSE.REQUEST.data['uuid']),
+        if self.get_data('uuid', False):
+            self.ensure(LENSE.OBJECTS.GROUP.exists(uuid=self.get_data('uuid')),
                 value = False,
-                error = 'Cannot create group, UUID {0} already exists'.format(LENSE.REQUEST.data['name']),
+                error = 'Cannot create group, UUID {0} already exists'.format(self.get_data['name']),
                 code  = 400)
             
             # Set the manual UUID
-            group_uuid = LENSE.REQUEST.data['uuid']
+            group_uuid = self.get_data('uuid')
             
         # Group attributes
         attrs = {
             'uuid': group_uuid,
-            'name': LENSE.REQUEST.data['name'],
-            'desc': LENSE.REQUEST.data['desc'],
-            'protected': LENSE.REQUEST.data.get('protected', False)
+            'name': self.get_data('name'),
+            'desc': self.get_data('desc'),
+            'protected': self.get_data('protected', False)
         }
             
         # Attributes string for logging
         attrs_str = 'uuid={0}, name={1}, protected={2}'.format(attrs['uuid'], attrs['name'], repr(attrs['protected']))
             
         # Create the group
-        LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.create(**attrs),
+        self.ensure(LENSE.OBJECTS.GROUP.create(**attrs),
             error = 'Failed to create group: {0}'.format(attrs_str),
             log   = 'Created group: {0}'.format(attrs_str),
             code  = 500)
@@ -334,7 +334,7 @@ class Group_Get(RequestHandler):
             return valid(LENSE.OBJECTS.GROUP.get())
         
         # Make sure the target group exists
-        group = LENSE.REQUEST.ensure(LENSE.GROUP.get(target),
+        group = LENSE.REQUEST.ensure(LENSE.OBJECTS.GROUP.get(uuid=target),
             error = 'Could not locate group object {0}'.format(target),
             debug = 'Group object {0} exists, retrieved object'.format(target),
             code  = 404)
