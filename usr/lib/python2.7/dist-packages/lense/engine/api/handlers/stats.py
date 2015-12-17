@@ -2,8 +2,8 @@ import re
 from django.db.models import Q
 
 # Lense Libraries
+from lense.common.utils import set_response
 from lense.engine.api.handlers import RequestHandler
-from lense.common.utils import valid, invalid, set_response
 from lense.common.objects.stats.models import APIRequestStats
 
 def log_request_stats(params):
@@ -33,13 +33,10 @@ class StatsRequest_Get(RequestHandler):
     - from=<timestamp>
     - to=<timestamp>
     """
-    def __init__(self, parent):
-        self.api = parent
+    def __init__(self):
         
-        # Define filters
-        self._filters = {}
-        
-        # Filter keys
+        # Filters / filter keys
+        self._filters     = {}
         self._filter_keys = {
             'generic': ['path', 'method', 'client_ip', 'client_user', 'client_group', 'endpoint', 'user_agent', 'retcode'],
             'range': ['req_size', 'rsp_size', 'rsp_time_ms']
@@ -109,4 +106,4 @@ class StatsRequest_Get(RequestHandler):
         self._run_range_filters()
         
         # Return the queryset
-        return valid(set_response(APIRequestStats.objects.filter(**self._filters).values(), '[]'))
+        return self.valid(set_response(APIRequestStats.objects.filter(**self._filters).values(), '[]'))
