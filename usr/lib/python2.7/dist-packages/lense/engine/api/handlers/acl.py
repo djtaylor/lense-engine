@@ -308,12 +308,12 @@ class ACLKeys_Delete(RequestHandler):
             code  = 400)
         
         # Make sure the ACL exists
-        self.ensure(LENSE.OBJECTS.ACL.KEY.exists(uuid=target),
+        self.ensure(LENSE.OBJECTS.ACL.KEYS.exists(uuid=target),
             error = 'Cannot delete ACL {0}, does not exist'.format(target),
             code  = 404)
         
         # Delete the ACL key
-        self.ensure(LENSE.OBJECTS.ACL.KEY.delete(uuid=target),
+        self.ensure(LENSE.OBJECTS.ACL.KEYS.delete(uuid=target),
             error = 'Failed to delete ACL key {0}'.format(target),
             log   = 'Deleted ACL key {0}'.format(target),
             code  = 500)
@@ -342,13 +342,13 @@ class ACLKeys_Create(RequestHandler):
         }
         
         # Make sure the ACL doesn't exist
-        self.ensure(LENSE.OBJECTS.ACL.KEY.exists(params['name']),
+        self.ensure(LENSE.OBJECTS.ACL.KEYS.exists(params['name']),
             value = False,
             error = 'ACL key {0} is already defined'.format(params['name']),
             code  = 400)
 
         # Create the ACL key entry
-        self.ensure(LENSE.OBJECTS.ACL.KEY.create(**params),
+        self.ensure(LENSE.OBJECTS.ACL.KEYS.create(**params),
             error = 'Failed to create ACL key {0}'.format(params['name']),
             log   = 'Created ACL key {0}'.format(params['name']),
             code  = 500)
