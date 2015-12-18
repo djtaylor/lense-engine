@@ -77,6 +77,12 @@ class GroupMember_Add(RequestHandler):
             error = 'No user UUID found in request data',
             code  = 400)
 
+        # Get the user object
+        user = self.ensure(LENSE.OBJECTS.USER.get(uuid=user),
+            isnot = False,
+            error = 'Could not retrieve user "{0}"'.format(user),
+            code  = 500)
+
         # Get the group object
         group = self.ensure(LENSE.OBJECTS.GROUP.get(uuid=group),
             error = 'Could not locate group object {0}'.format(group),
