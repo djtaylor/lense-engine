@@ -37,11 +37,11 @@ class RequestHandler(object):
     def invalid(self, *args, **kwargs):
         return invalid(*args, **kwargs)
     
-    def mod_has_class(*args, **kwargs):
+    def mod_has_class(self, mod, cls, **kwargs):
         """
         Wrapper method for checking if a module contains a class.
         """
-        return mod_has_class(*args, **kwargs)
+        return mod_has_class(mod, cls, **kwargs)
     
     def is_module(self, m):
         """
