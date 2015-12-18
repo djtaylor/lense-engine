@@ -56,18 +56,18 @@ class RequestManager(object):
         # Anonymous request
         if LENSE.REQUEST.is_anonymous:
             if not self.map['anon']:
-                return LENSE.HTTP.error(error='API handler <{0}.{1}> does not support anonymous requests'.format(self.map['mod'], self.api_class))
+                return LENSE.HTTP.error(msg='API handler <{0}.{1}> does not support anonymous requests'.format(self.map['mod'], self.api_class))
             
         # Token request
         elif LENSE.REQUEST.is_token:    
             if not LENSE.USER.authenticate():
-                return LENSE.HTTP.error(error=LENSE.USER.AUTH_ERROR, status=401)
+                return LENSE.HTTP.error(msg=LENSE.USER.AUTH_ERROR, status=401)
             LENSE.LOG.info('API key authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
         
         # Authenticated request
         else:
             if not LENSE.USER.AUTHENTICATE():
-                return LENSE.HTTP.error(error=LENSE.USER.AUTH_ERROR, status=401)
+                return LENSE.HTTP.error(msg=LENSE.USER.AUTH_ERROR, status=401)
             LENSE.LOG.info('API token authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
             
             # Run the request through the ACL gateway
@@ -75,7 +75,7 @@ class RequestManager(object):
             
             # Access not authorized
             if not LENSE.AUTH.ACL.authorized:
-                return LENSE.HTTP.error(error=LENSE.AUTH.ACL.auth_error, status=401)
+                return LENSE.HTTP.error(msg=LENSE.AUTH.ACL.auth_error, status=401)
     
     def _validate(self):
         """
@@ -93,7 +93,7 @@ class RequestManager(object):
         # Validate the request data
         request_err = JSONTemplate(self.map['rmap']).validate(LENSE.REQUEST.data)
         if request_err:
-            return LENSE.HTTP.error(error=request_err, status=400)
+            return LENSE.HTTP.error(msg=request_err, status=400)
     
     def run(self):
         """
