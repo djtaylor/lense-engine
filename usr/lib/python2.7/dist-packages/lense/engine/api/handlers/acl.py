@@ -60,7 +60,7 @@ class ACLObjects_Create(RequestHandler):
         ])
         
         # Make sure the type definition is not already used
-        self.ensure(LENSE.OBJECTS.ACL.OBJECT.exists(type=attrs['type']), 
+        self.ensure(LENSE.OBJECTS.ACL.OBJECTS.exists(type=attrs['type']), 
             value = False,
             error = 'ACL object type {0} already exists'.format(attrs['type']),
             code  = 400)
@@ -92,7 +92,7 @@ class ACLObjects_Create(RequestHandler):
                 code  = 400)
         
         # Create the ACL object
-        self.ensure(LENSE.OBJECTS.ACL.OBJECT.create(**attrs),
+        self.ensure(LENSE.OBJECTS.ACL.OBJECTS.create(**attrs),
             error = 'Failed to create ACL object',
             log   = 'Created ACL object {0}'.format(attrs['uuid']),
             code  = 500)
@@ -271,7 +271,7 @@ class ACLKeys_Update(RequestHandler):
                             return self.invalid('Object type mismatch <{0} -> {1}>, ACLs only support one object type per definition.'.format(obj_last, handler['object']))
             
             # Get the current ACL object
-            acl_obj = LENSE.OBJECTS.ACL.OBJECT.get(uuid=target)
+            acl_obj = LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target)
             
             # Update ACL handlers
             for acl_type, acl_handler in handlers.iteritems():
