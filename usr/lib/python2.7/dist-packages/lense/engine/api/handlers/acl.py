@@ -60,7 +60,7 @@ class ACLObjects_Create(RequestHandler):
         ])
         
         # Make sure the type definition is not already used
-        self.ensure(LENSE.OBJECTS.ACL.OBJECTS.exists(type=attrs['type']), 
+        self.ensure(LENSE.OBJECTS.ACL.OBJECTS.exists(**{'type': attrs['type']}), 
             value = False,
             error = 'ACL object type {0} already exists'.format(attrs['type']),
             code  = 400)
@@ -135,11 +135,11 @@ class ACLObjects_Update(RequestHandler):
         })
         
         # Make sure the object definition exists
-        if not ACLObjects.objects.filter(type=self.type).count():
+        if not ACLObjects.objects.filter(**{'type': self.type}).count():
             return self.invalid('Failed to update ACL object, type definition [{0}] not found'.format(self.type))
         
         # Get the existing ACL object definition
-        acl_obj = ACLObjects.objects.filter(type=self.type).values()[0]
+        acl_obj = ACLObjects.objects.filter(**{'type': self.type}).values()[0]
         
         # ACL module / class
         acl_mod = acl_obj['acl_mod'] if not ('acl_mod' in LENSE.REQUEST.data) else self.get_data('acl_mod')
@@ -181,11 +181,11 @@ class ACLObjects_Update(RequestHandler):
         try:
             
             # Update string values
-            ACLObjects.objects.filter(type=self.type).update(**LENSE.REQUEST.data)
+            ACLObjects.objects.filter(**{'type': self.type}).update(**LENSE.REQUEST.data)
             
             # If changing the default ACL
             if def_acl:
-                acl_obj = ACLObjects.objects.get(type=self.type)
+                acl_obj = ACLObjects.objects.get(**{'type': self.type})
                 acl_obj.def_acl = def_acl
                 acl_obj.save()
         
