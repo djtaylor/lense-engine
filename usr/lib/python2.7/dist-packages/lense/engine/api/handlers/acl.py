@@ -60,7 +60,7 @@ class ACLObjects_Create(RequestHandler):
         ])
         
         # Make sure the type definition is not already used
-        self.ensure(LENSE.OBJECTS.ACL.OBJECT.exists(attrs['type']), 
+        self.ensure(LENSE.OBJECTS.ACL.OBJECT.exists(type=attrs['type']), 
             value = False,
             error = 'ACL object type {0} already exists'.format(attrs['type']),
             code  = 400)
@@ -342,7 +342,7 @@ class ACLKeys_Create(RequestHandler):
         }
         
         # Make sure the ACL doesn't exist
-        self.ensure(LENSE.OBJECTS.ACL.KEYS.exists(params['name']),
+        self.ensure(LENSE.OBJECTS.ACL.KEYS.exists(name=params['name']),
             value = False,
             error = 'ACL key {0} is already defined'.format(params['name']),
             code  = 400)
