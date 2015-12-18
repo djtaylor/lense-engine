@@ -4,7 +4,7 @@ from uuid import uuid4
 
 # Lense Libraries
 from lense import MODULE_ROOT
-from lense.common.utils import mod_has_class, valid, invalid
+from lense.common.utils import mod_has_class, valid, invalid, rstring
 
 class RequestHandler(object):
     """
@@ -27,6 +27,9 @@ class RequestHandler(object):
                 supported = True
                 break
         return supported
+    
+    def rstring(self, *args, **kwargs):
+        return rstring(*args, **kwargs)
     
     def valid(self, *args, **kwargs):
         return valid(*args, **kwargs)

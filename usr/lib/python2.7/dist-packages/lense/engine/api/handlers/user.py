@@ -16,7 +16,7 @@ class User_Delete(RequestHandler):
             isnot = None,
             error = ERR_NO_UUID,
             code  = 400,
-            debug = 'Launching {0} for handler object {1}'.format(__name__, LENSE.REQUEST.data['uuid']))
+            debug = 'Launching {0} for handler object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
         user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
@@ -54,7 +54,7 @@ class User_Enable(RequestHandler):
             isnot = None,
             error = ERR_NO_UUID,
             code  = 400,
-            debug = 'Launching {0} for user object {1}'.format(__name__, LENSE.REQUEST.data['uuid']))
+            debug = 'Launching {0} for user object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
         user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
@@ -93,7 +93,7 @@ class User_Disable(RequestHandler):
             isnot = None,
             error = ERR_NO_UUID,
             code  = 400,
-            debug = 'Launching {0} for user object {1}'.format(__name__, LENSE.REQUEST.data['uuid']))
+            debug = 'Launching {0} for user object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
         user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
@@ -132,7 +132,7 @@ class User_ResetPassword(RequestHandler):
             isnot = None,
             error = ERR_NO_UUID,
             code  = 400,
-            debug = 'Launching {0} for user object {1}'.format(__name__, LENSE.REQUEST.data['uuid']))
+            debug = 'Launching {0} for user object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
         user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
@@ -179,7 +179,8 @@ class User_Create(RequestHandler):
         # Make sure the user doesn't exist
         self.ensure(LENSE.OBJECTS.USER.exists(username=username), 
             value = False,
-            error = 'User {0} already exists'.format(username),
+            error = 'User "{0}" already exists'.format(username),
+            debug = 'User "{0}" doesn\'t exist, OK to create'.format(username),
             code  = 400)
         
         # If setting a user supplied password
@@ -188,19 +189,21 @@ class User_Create(RequestHandler):
             # Make sure the password meets strength requirements if specifying
             self.ensure(LENSE.AUTH.check_pw_strength(passwd),
                 error = 'Password does not meet strength requirements',
+                debug = 'Password strength for user "{0}" OK'.format(username),
                 code  = 400)
             
             # Make sure confirmation password matches
             self.ensure(passwd, 
                 value = passwd_c,
                 error = 'Confirmation password does not match',
+                debug = 'New user "{0}" data keys "password" and "password_confirm" do not match'.format(username),
                 code  = 400)
             
         # If setting a user supplied UUID
         if self.get_data('uuid', False):
-            self.ensure(LENSE.OBJECTS.USER.exists(uuid=LENSE.REQUEST.data['uuid']),
-                value = False,
-                error = 'Cannot create user with duplicate UUID: {0}'.format(LENSE.REQUEST.data['uuid']),
+            self.ensure(LENSE.OBJECTS.USER.exists(uuid=self.get_data('uuid')),
+                isnot = True,
+                error = 'Cannot create user with duplicate UUID: {0}'.format(self.get_data('uuid')),
                 code  = 400)
         
         # Mape new user attributes
@@ -221,6 +224,12 @@ class User_Create(RequestHandler):
             log   = 'Created user account',
             code  = 500)
         
+        # Grant the user an API key
+        api_key = self.ensure(LENSE.OBJECTS.USER.grant_key(uuid=user.uuid),
+            isnot = False,
+            error = 'Failed to grant API key to new user "{0}"'.format(user.username),
+            code  = 500)
+        
         # Confirmation email attributes
         email_attrs = {
             'sub':  'Lense New Account: {0}'.format(user.username),
@@ -231,9 +240,6 @@ class User_Create(RequestHandler):
         
         # Send the confirmation email
         LENSE.MAIL.send(*[x[1] for x in email_attrs])
-        
-        # Get the new users' API key
-        api_key = LENSE.USER.key(user.uuid)
         
         # OK
         return self.valid('Successfully created user account', {
