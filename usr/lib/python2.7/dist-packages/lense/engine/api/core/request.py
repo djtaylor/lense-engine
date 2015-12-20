@@ -60,7 +60,7 @@ class RequestManager(object):
             
         # Token request
         elif LENSE.REQUEST.is_token:    
-            if not LENSE.USER.authenticate():
+            if not LENSE.OBJECTS.USER.authenticate():
                 return LENSE.HTTP.error(msg=LENSE.USER.AUTH_ERROR, status=401)
             LENSE.LOG.info('API key authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
         
