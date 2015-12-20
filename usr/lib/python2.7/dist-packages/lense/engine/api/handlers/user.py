@@ -225,7 +225,7 @@ class User_Create(RequestHandler):
             code  = 500)
         
         # Grant the user an API key
-        api_key = self.ensure(LENSE.OBJECTS.USER.grant_key(uuid=user.uuid),
+        api_key = self.ensure(LENSE.OBJECTS.USER.grant_key(user.uuid),
             isnot = False,
             error = 'Failed to grant API key to new user "{0}"'.format(user.username),
             code  = 500)
