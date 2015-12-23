@@ -196,7 +196,7 @@ class User_Create(RequestHandler):
             self.ensure(passwd, 
                 value = passwd_c,
                 error = 'Confirmation password does not match',
-                debug = 'New user "{0}" data keys "password" and "password_confirm" do not match'.format(username),
+                debug = 'New user "{0}" data keys "password" and "password_confirm" match'.format(username),
                 code  = 400)
             
         # If setting a user supplied UUID
@@ -220,8 +220,8 @@ class User_Create(RequestHandler):
         # Create the user account
         user = self.ensure(LENSE.OBJECTS.USER.create(**attrs),
             isnot = False,
-            error = 'Failed to create user account',
-            log   = 'Created user account',
+            error = 'Failed to create user account: username={0}, email={1}'.format(attrs['username'], attrs['email']),
+            log   = 'Created user account: username={0}, email={1}'.format(attrs['username'], attrs['email']),
             code  = 500)
         
         # Grant the user an API key
