@@ -79,7 +79,7 @@ class GroupMember_Add(RequestHandler):
 
         # Get the user object
         user = self.ensure(LENSE.OBJECTS.USER.get(uuid=user),
-            isnot = False,
+            isnot = None,
             error = 'Could not retrieve user "{0}"'.format(user),
             code  = 500)
 
@@ -89,7 +89,6 @@ class GroupMember_Add(RequestHandler):
             error = 'Could not locate group object {0}'.format(group),
             debug = 'Group object {0} exists, retrieved object'.format(group),
             code  = 404)
-        LENSE.LOG.debug('Group object {0}'.format(repr(group)))
         
         # Check if the user is already a member of the group
         self.ensure(LENSE.OBJECTS.GROUP.has_member(group.uuid, user.uuid),
