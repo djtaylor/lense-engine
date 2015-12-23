@@ -85,6 +85,7 @@ class GroupMember_Add(RequestHandler):
 
         # Get the group object
         group = self.ensure(LENSE.OBJECTS.GROUP.get(uuid=group),
+            isnot = None,
             error = 'Could not locate group object {0}'.format(group),
             debug = 'Group object {0} exists, retrieved object'.format(group),
             code  = 404)
