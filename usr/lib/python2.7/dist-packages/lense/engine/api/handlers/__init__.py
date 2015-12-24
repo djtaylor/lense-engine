@@ -12,7 +12,7 @@ class RequestHandler(object):
     """
     def __init__(self):
         self.obj = LENSE.OBJECTS.HANDLER.get(path=LENSE.REQUEST.path,method=LENSE.REQUEST.method)
-        self.cls = obj.cls
+        self.cls = self.obj.cls
     
     def acl_object_supported(self, otype):
         """
