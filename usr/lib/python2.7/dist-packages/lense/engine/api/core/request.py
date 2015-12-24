@@ -61,13 +61,13 @@ class RequestManager(object):
         # Token request
         elif LENSE.REQUEST.is_token:    
             if not LENSE.OBJECTS.USER.authenticate():
-                return LENSE.HTTP.error(msg=LENSE.USER.AUTH_ERROR, status=401)
+                return LENSE.HTTP.error(msg=LENSE.OBJECTS.USER.auth_error, status=401)
             LENSE.LOG.info('API key authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
         
         # Authenticated request
         else:
-            if not LENSE.USER.AUTHENTICATE():
-                return LENSE.HTTP.error(msg=LENSE.USER.AUTH_ERROR, status=401)
+            if not LENSE.OBJECTS.USER.AUTHENTICATE():
+                return LENSE.HTTP.error(msg=LENSE.OBJECTS.USER.auth_error, status=401)
             LENSE.LOG.info('API token authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
             
             # Run the request through the ACL gateway
