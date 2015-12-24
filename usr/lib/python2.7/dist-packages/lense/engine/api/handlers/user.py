@@ -230,6 +230,12 @@ class User_Create(RequestHandler):
             error = 'Failed to grant API key to new user "{0}"'.format(user.username),
             code  = 500)
         
+        # Grant the user an API token
+        self.ensure(LENSE.OBJECTS.USER.grant_token(user),
+            isnot = False,
+            error = 'Failed to grant API token to new user "{0}"'.format(user.username),
+            code  = 500)
+        
         # Confirmation email attributes
         email_attrs = {
             'sub':  'Lense New Account: {0}'.format(user.username),
