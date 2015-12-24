@@ -10,6 +10,10 @@ class RequestHandler(object):
     """
     Parent class for defining common/shortcut methods for request handlers.
     """
+    def __init__(self):
+        self.obj = LENSE.OBJECTS.HANDLER.get(path=LENSE.REQUEST.path,method=LENSE.REQUEST.method)
+        self.cls = obj.cls
+    
     def acl_object_supported(self, otype):
         """
         Ensure a particular ACL object type is supported.
@@ -136,4 +140,10 @@ class RequestHandler(object):
         """
         Wrapper method for LENSE.REQUEST.ensure()
         """
+        logpre = '<HANDLERS:{0}>'.format(self.cls)
+        
+        # Prepend log prefix
+        for k in ['debug', 'error', 'log']:
+            if hasattr(kwargs, k):
+                kwargs[k] = '{0} {1}'.format(logpre, kwargs[k])
         return LENSE.REQUEST.ensure(*args, **kwargs)

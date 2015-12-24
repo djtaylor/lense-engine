@@ -4,7 +4,7 @@ from json import loads as json_loads
 
 # Lense Libraries
 from lense import import_class
-from lense.common.exceptions import RequestError
+from lense.common.exceptions import RequestError, EnsureError
 from lense.engine.api.handlers.stats import log_request_stats
 from lense.common.utils import JSONTemplate, valid, invalid
 
@@ -118,11 +118,16 @@ class RequestManager(object):
         
         # Set up the request handler and get a response
         try:       
-            response = import_class(self.map['class'], self.map['mod']).launch()
+            response = import_class(self.map['class'], self.map['module']).launch()
             
         # Request error
         except RequestError as e:
             return LENSE.HTTP.error(msg=e.message, status=e.code)
+            
+        # Ensure error
+        except EnsureError as e:
+            LENSE.LOG.exception(str(e))
+            return LENSE.HTTP.exception()
             
         # Critical error when running handler
         except Exception as e:
