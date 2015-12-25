@@ -16,4 +16,4 @@ class Token_Get(RequestHandler):
             code  = 500)
         
         # Return the token
-        return self.valid({'token': token})
+        return self.ok(data={'token': token})

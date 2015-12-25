@@ -106,4 +106,4 @@ class StatsRequest_Get(RequestHandler):
         self._run_range_filters()
         
         # Return the queryset
-        return self.valid(set_response(APIRequestStats.objects.filter(**self._filters).values(), '[]'))
+        return self.ok(data=set_response(APIRequestStats.objects.filter(**self._filters).values(), '[]'))

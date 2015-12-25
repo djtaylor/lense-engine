@@ -40,7 +40,7 @@ class Handler_Delete(RequestHandler):
             code  = 500)
         
         # OK
-        return self.valid('Successfully deleted handler', {'uuid': target})
+        return self.ok('Successfully deleted handler', {'uuid': target})
 
 class Handler_Create(RequestHandler):
     """
@@ -85,8 +85,8 @@ class Handler_Create(RequestHandler):
             log   = 'Created handler: {0}'.format(attrs_str),
             code  = 500)
             
-        # Return the response
-        return self.valid('Successfully created handler', {
+        # OK
+        return self.ok('Successfully created handler', {
             'uuid': params['uuid'],
             'path': params['path'],
             'method': params['method'],
@@ -144,7 +144,7 @@ class Handler_Update(RequestHandler):
             code  = 500)
 
         # Successfully updated handler
-        return self.valid('Successfully updated handler.')
+        return self.ok(message='Successfully updated handler.')
 
 class Handler_Validate(RequestHandler):
     """
@@ -228,7 +228,7 @@ class Handler_Validate(RequestHandler):
         self._validate(handler)
         
         # Utility is valid
-        return self.valid('Handler validation succeeded.')
+        return self.ok(message='Handler validation succeeded.')
 
 class Handler_Close(RequestHandler):
     """
@@ -263,7 +263,7 @@ class Handler_Close(RequestHandler):
             log   = 'Checking in hander {0}: locked=False'.format(target))
         
         # Handler checked in
-        return self.valid('Handler checked in')
+        return self.ok(message='Handler checked in')
     
 class Handler_Open(RequestHandler):
     """
@@ -302,7 +302,7 @@ class Handler_Open(RequestHandler):
             log   = 'Checking out hander {0}: locked=True'.format(target))
         
         # Handler checked in
-        return self.valid('Handler checked out')
+        return self.ok(message='Handler checked out')
         
 class Handler_Get(RequestHandler):
     """
@@ -326,4 +326,4 @@ class Handler_Get(RequestHandler):
             code  = 404)
         
         # Return the handler details
-        return self.valid(handler)
+        return self.ok(data=handler.values())

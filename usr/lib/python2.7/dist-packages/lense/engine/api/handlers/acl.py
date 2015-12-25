@@ -35,7 +35,7 @@ class ACLObjects_Delete(RequestHandler):
             code  = 500)
         
         # Return the response
-        return self.valid('Successfully deleted ACL object definition', {
+        return self.ok('Successfully deleted ACL object definition', {
             'uuid': target
         })
 
@@ -98,7 +98,7 @@ class ACLObjects_Create(RequestHandler):
             code  = 500)
         
         # Return the response
-        return self.valid('Successfully created ACL object definition', {
+        return self.ok('Successfully created ACL object definition', {
             'type': attrs['type'],
             'uuid': attrs['uuid'],
             'name': attrs['name']
@@ -194,7 +194,7 @@ class ACLObjects_Update(RequestHandler):
             return self.invalid('Failed to update ACL object: {0}'.format(str(e)))
          
         # Successfully updated object
-        return self.valid('Successfully updated ACL object')
+        return self.ok('Successfully updated ACL object')
 
 class ACLObjects_Get(RequestHandler):
     """
@@ -218,7 +218,7 @@ class ACLObjects_Get(RequestHandler):
             code  = 404)
         
         # Return the ACL object
-        return self.valid(acl_object)
+        return self.ok(data=acl_object.values())
      
 class ACLKeys_Update(RequestHandler):
     """
@@ -292,7 +292,7 @@ class ACLKeys_Update(RequestHandler):
                         code  = 500)
                 
         # ACL updated
-        return self.valid('Succesfully updated ACL')
+        return self.ok(message='Succesfully updated ACL')
         
 class ACLKeys_Delete(RequestHandler):
     """
@@ -319,7 +319,7 @@ class ACLKeys_Delete(RequestHandler):
             code  = 500)
         
         # OK
-        return self.valid('Successfully deleted ACL', {
+        return self.ok('Successfully deleted ACL', {
             'uuid': target
         })
         
@@ -354,7 +354,7 @@ class ACLKeys_Create(RequestHandler):
             code  = 500)
             
         # Create ACL definition
-        return self.valid('Create new ACL definition', {
+        return self.ok('Create new ACL definition', {
             'uuid': params['uuid'],
             'name': params['name'],
             'desc': params['desc']
@@ -381,4 +381,4 @@ class ACLKeys_Get(RequestHandler):
             code  = 404)
         
         # Return the ACL key
-        return self.valid(acl_key)
+        return self.ok(data=acl_key.values())

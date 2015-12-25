@@ -50,7 +50,7 @@ class GroupMember_Remove(RequestHandler):
             code  = 500)
         
         # Return the response
-        return self.valid('Successfully removed group member', {
+        return self.ok('Successfully removed group member', {
             'group': {
                 'name':   group.name,
                 'uuid':   group.uuid,
@@ -103,7 +103,7 @@ class GroupMember_Add(RequestHandler):
             code  = 500)
         
         # Return the response
-        return self.valid('Successfully added group member', {
+        return self.ok('Successfully added group member', {
             'group': {
                 'name':   group.name,
                 'uuid':   group.uuid,
@@ -149,7 +149,7 @@ class Group_Delete(RequestHandler):
             code  = 500)
         
         # Return the response
-        return self.valid('Successfully deleted group', {
+        return self.ok('Successfully deleted group', {
             'uuid': group.uuid
         })
 
@@ -266,7 +266,7 @@ class Group_Update(RequestHandler):
             return operms_status
         
         # Return the response
-        return self.valid('Successfully updated group properties', {
+        return self.ok('Successfully updated group properties', {
             'name_change': self.name_change,
             'group_uuid':  self.group,
             'group_name':  self.name_return,
@@ -320,7 +320,7 @@ class Group_Create(RequestHandler):
             code  = 500)
         
         # Return the response
-        return self.valid('Successfully created group', attrs)
+        return self.ok('Successfully created group', attrs)
 
 class Group_Get(RequestHandler):
     """
@@ -345,5 +345,5 @@ class Group_Get(RequestHandler):
             code  = 404)
         
         # Return the group details
-        return self.valid(group)
+        return self.ok(group.values())
             

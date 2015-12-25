@@ -6,13 +6,22 @@ from uuid import uuid4
 from lense import MODULE_ROOT
 from lense.common.utils import mod_has_class, valid, invalid, rstring
 
+class RequestOK(object):
+    """
+    Construct a basic response object for passing back to 
+    the request handler.
+    """
+    def __init__(self, message, data):
+        self.message = message
+        self.data    = data
+
 class RequestHandler(object):
     """
     Parent class for defining common/shortcut methods for request handlers.
     """
     def __init__(self):
         self.obj = LENSE.OBJECTS.HANDLER.get(path=LENSE.REQUEST.path,method=LENSE.REQUEST.method)
-        self.cls = self.obj.cls
+        self.cls = getattr(self.obj, 'cls', 'RequestHandler')
     
     def acl_object_supported(self, otype):
         """
@@ -90,6 +99,12 @@ class RequestHandler(object):
         """
         if key in LENSE.REQUEST.data:
             del LENSE.REQUEST.data[key]
+    
+    def ok(self, message='Request successfull', data={}):
+        """
+        Request was successfull, return a response object.
+        """
+        return RequestOK(message, data)
     
     def get_data(self, key, default=None):
         """

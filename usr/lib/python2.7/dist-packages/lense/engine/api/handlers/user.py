@@ -37,8 +37,8 @@ class User_Delete(RequestHandler):
             log   = 'Deleted user account {0}'.format(target),
             code  = 500)
 
-        # Return the response
-        return self.valid('Successfully deleted user account', {
+        # OK
+        return self.ok('Deleted user account: {0}'.format(target), {
             'uuid': target
         })
 
@@ -76,8 +76,8 @@ class User_Enable(RequestHandler):
             log   = 'Enabled user account {0}'.format(target),
             code  = 500)
         
-        # Return the response
-        return self.valid('Successfully enabled user account', {
+        # OK
+        return self.ok('Enabled user account: {0}'.format(target), {
             'uuid': target
         })
 
@@ -109,14 +109,13 @@ class User_Disable(RequestHandler):
             code  = 400)
         
         # Disable the user account
-        self.ensure(LENSE.OBJECTS.USER.update(target, {
-            'is_active': False
-        }), error = 'Failed to disable user account {0}'.format(target),
+        self.ensure(LENSE.OBJECTS.USER.update(target, {'is_active': False}), 
+            error = 'Failed to disable user account {0}'.format(target),
             log   = 'Disabled user account {0}'.format(target),
             code  = 500)
         
-        # Return the response
-        return self.valid('Successfully disable user account', {
+        # OK
+        return self.ok('Disabled user account: {0}'.format(target), {
             'uuid': target
         })
 
@@ -162,7 +161,7 @@ class User_ResetPassword(RequestHandler):
         LENSE.MAIL.send(*[x[1] for x in email_attrs])
         
         # OK
-        return self.valid('Successfully reset user password')
+        return self.ok('Reset password for user: {0}'.format(target))
     
 class User_Create(RequestHandler):
     """
@@ -248,13 +247,13 @@ class User_Create(RequestHandler):
         LENSE.MAIL.send(*[x[1] for x in email_attrs])
         
         # OK
-        return self.valid('Successfully created user account', {
+        return self.ok('Created user account: {0}'.format(user.uuid), {
             'uuid':       user.uuid,
             'username':   user.username,
             'first_name': user.first_name,
             'last_name':  user.last_name,
             'email':      user.email,
-            'api_key':    api_key
+            'api_key':    api_key                                                          
         })
 
 class User_Get(RequestHandler):
@@ -282,4 +281,4 @@ class User_Get(RequestHandler):
             code  = 404)
         
         # Return the user details
-        return self.valid(user)
+        return self.ok(data=user.values())

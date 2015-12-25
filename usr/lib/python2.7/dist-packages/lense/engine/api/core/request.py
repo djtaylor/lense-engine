@@ -6,7 +6,7 @@ from json import loads as json_loads
 from lense import import_class
 from lense.common.exceptions import RequestError, EnsureError
 from lense.engine.api.handlers.stats import log_request_stats
-from lense.common.utils import JSONTemplate, valid, invalid
+from lense.common.utils import RMapValidate, valid, invalid
 
 def dispatch(request):
     """
@@ -19,8 +19,6 @@ def dispatch(request):
     :rtype: object
     """
     try:
-        
-        # Return the response from the request manager
         return RequestManager.dispatch(request)
     
     # Critical server error
@@ -45,94 +43,56 @@ class RequestManager(object):
         LENSE.connect_socket().set()
     
         # Request map
-        self.map       = None
+        self.map = LENSE.API.map_request()
     
-    def _authenticate(self):
+        # Authenticate the request
+        self.authenticate()
+    
+    def authenticate(self):
         """
         Authenticate the API request.
         """
         LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(LENSE.REQUEST.USER.name, repr(LENSE.REQUEST.USER.group)))
+        handler_path = '{0}:{1}'.format(LENSE.REQUEST.method, LENSE.REQUEST.path)
         
         # Anonymous request
         if LENSE.REQUEST.is_anonymous:
-            if not self.map['anon']:
-                return LENSE.HTTP.error(msg='API handler <{0}.{1}> does not support anonymous requests'.format(self.map['mod'], self.api_class))
+            return LENSE.REQUEST.ensure(self.map['anon'],
+                error = 'Request handler <{0}> does not support anonymous requests'.format(handler_path),
+                log   = 'Processing anonymous request for <{0}>'.format(),
+                code  = 401)
             
         # Token request
-        elif LENSE.REQUEST.is_token:    
-            if not LENSE.OBJECTS.USER.authenticate():
-                return LENSE.HTTP.error(msg=LENSE.OBJECTS.USER.auth_error, status=401)
-            LENSE.LOG.info('API key authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
-        
+        if LENSE.REQUEST.is_token:    
+            return LENSE.REQUEST.ensure(LENSE.OBJECTS.USER.authenticate(),
+                error = 'Token request failed',
+                log   = 'Token request OK for {0}'.format(LENSE.REQUEST.user),
+                code  = 401)
+            
         # Authenticated request
-        else:
-            if not LENSE.OBJECTS.USER.AUTHENTICATE():
-                return LENSE.HTTP.error(msg=LENSE.OBJECTS.USER.auth_error, status=401)
-            LENSE.LOG.info('API token authentication successfull for user: {0}'.format(LENSE.REQUEST.USER.name))
-            
-            # Run the request through the ACL gateway
-            LENSE.AUTH.set_acl(LENSE.REQUEST)
-            
-            # Access not authorized
-            if not LENSE.AUTH.ACL.authorized:
-                return LENSE.HTTP.error(msg=LENSE.AUTH.ACL.auth_error, status=401)
-    
-    def _validate(self):
-        """
-        Perform initial validation of the request.
-        """
-    
-        # Map the path to a module, class, and API name
-        map = LENSE.API.map_request()
+        LENSE.REQUEST.ensure(LENSE.OBJECTS.USER.authenticate(),
+            error = LENSE.OBJECTS.USER.auth_error,
+            log   = 'Authentication successful for user {0}'.format(LENSE.REQUEST.USER.name),
+            code  = 401)
         
-        # Request map failed
-        if not map['valid']: 
-            return map['content']
-        self.map = map['content']
-    
-        # Validate the request data
-        request_err = JSONTemplate(self.map['rmap']).validate(LENSE.REQUEST.data)
-        if request_err:
-            return LENSE.HTTP.error(msg=request_err, status=400)
+        # Run the request through the ACL gateway
+        LENSE.AUTH.set_acl(LENSE.REQUEST)
+        
+        # Access not authorized
+        if not LENSE.AUTH.ACL.authorized:
+            return LENSE.HTTP.error(msg=LENSE.AUTH.ACL.auth_error, status=401)
     
     def run(self):
         """
         Worker method for processing the incoming API request.
         """
-        
-        # Request received timestamp
         req_received = int(round(time() * 1000))
         
-        # Validate and authenticate the request the request
-        try:
-            validate_error = self._validate()
-            auth_error     = None if validate_error else self._authenticate()
-            
-        # Critical error during validation / authentication
-        except Exception as e:
-            return LENSE.HTTP.exception(str(e))
-        
-        # Validation / authentication error
-        if validate_error: return validate_error
-        if auth_error: return auth_error
+        # Request map validator: disable for now, needs an overhaul
+        #RMapValidate(self.map['rmap']).validate(LENSE.REQUEST.data)
         
         # Set up the request handler and get a response
-        try:       
-            response = import_class(self.map['class'], self.map['module']).launch()
-            
-        # Request error
-        except RequestError as e:
-            return LENSE.HTTP.error(msg=e.message, status=e.code)
-            
-        # Ensure error
-        except EnsureError as e:
-            LENSE.LOG.exception(str(e))
-            return LENSE.HTTP.exception()
-            
-        # Critical error when running handler
-        except Exception as e:
-            LENSE.LOG.exception(str(e))
-            return LENSE.HTTP.exception()
+        response = import_class(self.map['class'], self.map['module']).launch()
         
         # Close any open SocketIO connections
         LENSE.SOCKET.disconnect()
@@ -156,6 +116,8 @@ class RequestManager(object):
         })
         
         # Return either a valid or invalid request response
+        return LENSE.API.LOG.success(response.message, response.data)
+        
         if response['valid']:
             return LENSE.API.LOG.success(response['content'], response['data'])
         return LENSE.API.LOG.error(code=response['code'], log_msg=response['content'])
@@ -168,5 +130,11 @@ class RequestManager(object):
         :param request: The incoming Django request object
         :type  request: HttpRequest
         """
-        manager = RequestManager(request)
-        return manager.run()
+        try:
+            manager = RequestManager(request)
+            return manager.run()
+        
+        # Internal request error
+        except (EnsureError, RequestError, AuthError) as e:
+            LENSE.LOG.exception(e.message)
+            return LENSE.HTTP.error(e.message, e.code)
