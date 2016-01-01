@@ -37,10 +37,11 @@ class RequestManager(object):
     """
     def __init__(self, request):
         
-        # Set request / API logger / SocketIO data
+        # Set request / API logger / SocketIO data / ACL gateway
         LENSE.REQUEST.set(request)
         LENSE.API.create_logger()
         LENSE.connect_socket().set()
+        LENSE.AUTH.init_acl()
     
         # Request map
         self.map = LENSE.API.map_request()
