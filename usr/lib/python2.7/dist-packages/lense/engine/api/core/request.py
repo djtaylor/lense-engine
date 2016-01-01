@@ -75,12 +75,8 @@ class RequestManager(object):
             log   = 'Authentication successful for user {0}'.format(LENSE.REQUEST.USER.name),
             code  = 401)
         
-        # Run the request through the ACL gateway
-        LENSE.AUTH.set_acl(LENSE.REQUEST)
-        
-        # Access not authorized
-        if not LENSE.AUTH.ACL.authorized:
-            return LENSE.HTTP.error(msg=LENSE.AUTH.ACL.auth_error, status=401)
+        # Authorized request handler access
+        LENSE.AUTH.ACL.request()
     
     def run(self):
         """
@@ -115,12 +111,8 @@ class RequestManager(object):
             'rsp_time_ms': rsp_sent - req_received
         })
         
-        # Return either a valid or invalid request response
+        # OK
         return LENSE.API.LOG.success(response.message, response.data)
-        
-        if response['valid']:
-            return LENSE.API.LOG.success(response['content'], response['data'])
-        return LENSE.API.LOG.error(code=response['code'], log_msg=response['content'])
     
     @staticmethod
     def dispatch(request):
