@@ -36,12 +36,6 @@ class RequestManager(object):
     by the Django URLs module file. It is initialized with the Django request object.
     """
     def __init__(self, request):
-        
-        # Set request / API logger / SocketIO data / ACL gateway
-        LENSE.REQUEST.set(request)
-        LENSE.API.create_logger()
-        LENSE.connect_socket().set()
-        LENSE.AUTH.init_acl()
     
         # Request map
         self.map = LENSE.API.map_request()
@@ -124,8 +118,12 @@ class RequestManager(object):
         :type  request: HttpRequest
         """
         try:
-            manager = RequestManager(request)
-            return manager.run()
+            
+            # Setup Lense commons
+            LENSE.SETUP.engine(request)
+            
+            # Run the request manager
+            return RequestManager(request).run()
         
         # Internal request error
         except (EnsureError, RequestError, AuthError) as e:
