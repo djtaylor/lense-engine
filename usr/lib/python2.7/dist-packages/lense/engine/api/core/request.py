@@ -67,7 +67,7 @@ class RequestManager(object):
         if LENSE.REQUEST.is_token:    
             return LENSE.REQUEST.ensure(LENSE.OBJECTS.USER.authenticate(),
                 error = 'Token request failed',
-                log   = 'Token request OK for {0}'.format(LENSE.REQUEST.user),
+                log   = 'Token request OK for {0}'.format(LENSE.REQUEST.USER.name),
                 code  = 401)
             
         # Authenticated request
