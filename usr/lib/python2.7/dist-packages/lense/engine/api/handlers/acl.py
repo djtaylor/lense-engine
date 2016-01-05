@@ -48,31 +48,25 @@ class ACLObjects_Create(RequestHandler):
         Worker method for creating a new ACL object definition.
         """
         attrs = LENSE.REQUEST.map_data([
-            'type', 
-            'name', 
-            'acl_mod', 
-            'acl_cls', 
-            'acl_key', 
-            'obj_mod', 
-            'obj_cls', 
-            'obj_key',
+            'name',
+            'object_mod', 
+            'object_cls', 
+            'object_key',
+            'object_type',
             'def_acl'                            
         ])
         
         # Make sure the type definition is not already used
-        self.ensure(LENSE.OBJECTS.ACL.OBJECTS.exists(**{'type': attrs['type']}), 
+        self.ensure(LENSE.OBJECTS.ACL.OBJECTS.exists(object_type=attrs['object_type']), 
             value = False,
-            error = 'ACL object type {0} already exists'.format(attrs['type']),
+            error = 'ACL object type {0} already exists'.format(attrs['object_type']),
             code  = 400)
         
         # Validate the object module/class definitions
-        for k in ['acl', 'obj']:
-            mod = '{0}_mod'.format(k)
-            cls = '{0}_cls'.format(k)
-            self.ensure(self.mod_has_class(attrs[mod], attrs[cls], no_launch=True),
-                error = 'Could not find object module/class',
-                code  = 500)
-        
+        self.ensure(self.mod_has_class(attrs['object_mod'], attrs['object_cls'], no_launch=True),
+            error = 'Could not find object module/class: {0}.{1}'.format(attrs['object_mod'], attrs['object_cls']),
+            code  = 500)
+            
         # Set a unique ID for the ACL object
         attrs['uuid'] = self.create_uuid()
         
@@ -99,7 +93,7 @@ class ACLObjects_Create(RequestHandler):
         
         # Return the response
         return self.ok('Successfully created ACL object definition', {
-            'type': attrs['type'],
+            'object_type': attrs['object_type'],
             'uuid': attrs['uuid'],
             'name': attrs['name']
         })
