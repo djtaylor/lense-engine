@@ -21,7 +21,7 @@ class Handler_Delete(RequestHandler):
             debug = 'Launching {0} for handler object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the handler
-        handler = self.ensure(LENSE.OBJECTS.HANDLER.acl().get(uuid=target), 
+        handler = self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True).get(uuid=target), 
             isnot = None, 
             error = 'Could not find handler: {0}'.format(target),
             debug = 'Handler {0} exists, retrieved object'.format(target),
@@ -110,7 +110,7 @@ class Handler_Update(RequestHandler):
             debug = 'Launching {0} for handler object {1}'.format(__name__, self.get_data('uuid')))
         
         # Get the handler object
-        handler = self.ensure(LENSE.OBJECTS.HANDLER.acl().get(uuid=target), 
+        handler = self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True).get(uuid=target), 
             isnot = None, 
             error = 'Could not find handler: {0}'.format(target),
             debug = 'Handler {0} exists, retrieved object'.format(target),
@@ -218,7 +218,7 @@ class Handler_Validate(RequestHandler):
             debug = 'Launching {0} for handler object {1}'.format(__name__, self.get_data('uuid')))
         
         # Make sure the handler exists
-        handler = self.ensure(LENSE.OBJECTS.HANDLER.acl().get(uuid=target), 
+        handler = self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True).get(uuid=target), 
             isnot = None, 
             error = 'Could not find handler: {0}'.format(target),
             debug = 'Handler {0} exists, retrieved object'.format(target),
@@ -245,7 +245,7 @@ class Handler_Close(RequestHandler):
             debug = 'Launching {0} for handler object {1}'.format(__name__, self.get_data('uuid')))
     
         # Make sure the handler exists
-        handler = self.ensure(LENSE.OBJECTS.HANDLER.acl().get(uuid=target), 
+        handler = self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True).get(uuid=target), 
             isnot = None, 
             error = 'Could not find handler: {0}'.format(target),
             debug = 'Handler {0} exists, retrieved object'.format(target),
@@ -280,7 +280,7 @@ class Handler_Open(RequestHandler):
             debug = 'Launching {0} for handler object {1}'.format(__name__, self.get_data('uuid')))
     
         # Make sure the handler exists
-        handler = self.ensure(LENSE.OBJECTS.HANDLER.acl().get(uuid=target), 
+        handler = self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True).get(uuid=target), 
             isnot = False, 
             error = 'Could not find handler: {0}'.format(target),
             debug = 'Handler {0} exists, retrieved object'.format(target),
@@ -316,10 +316,10 @@ class Handler_Get(RequestHandler):
         
         # Return all handlers
         if not target:
-            return LENSE.OBJECTS.HANDLER.get()
+            return self.ok(data=LENSE.OBJECTS.HANDLER.set(acl=True, dump=True).get())
         
         # Look for the handler
-        handler = self.ensure(LENSE.OBJECTS.HANDLER.acl().get(uuid=target), 
+        handler = self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True, dump=True).get(uuid=target), 
             isnot = None, 
             error = 'Could not find handler: {0}'.format(target),
             debug = 'Handler {0} exists, retrieved object'.format(target),
