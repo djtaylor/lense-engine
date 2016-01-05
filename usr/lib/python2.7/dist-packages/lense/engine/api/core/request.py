@@ -106,9 +106,9 @@ class RequestManager(object):
             'client_group': LENSE.REQUEST.USER.group,
             'endpoint': LENSE.REQUEST.host,
             'user_agent': LENSE.REQUEST.agent,
-            'retcode': int(response['code']),
+            'retcode': 200,
             'req_size': int(LENSE.REQUEST.size),
-            'rsp_size': int(getsizeof(response['content'])),
+            'rsp_size': int(getsizeof(response.data)) + int(getsizeof(response.message)),
             'rsp_time_ms': rsp_sent - req_received
         })
         
