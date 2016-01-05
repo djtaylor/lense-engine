@@ -1,5 +1,5 @@
 from lense.engine.api.handlers import RequestHandler
-from lense.common.objects.acl.models import ACLKeys, ACLObjects, ACLGlobalAccess, ACLObjectAccess
+from lense.common.objects.acl.models import ACLKeys, ACLObjects
 
 ERR_NO_UUID='No ACL object UUID found in request data'
 
