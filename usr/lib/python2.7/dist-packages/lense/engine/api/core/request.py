@@ -113,7 +113,7 @@ class RequestManager(object):
         })
         
         # OK
-        return LENSE.API.LOG.success(response.message, response.data)
+        return LENSE.HTTP.success(response.message, response.data)
     
     @staticmethod
     def dispatch(request):
