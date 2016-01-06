@@ -335,7 +335,7 @@ class Group_Get(RequestHandler):
         
         # Retrieving all groups
         if not target:
-            return self.valid(LENSE.OBJECTS.GROUP.set(acl=True, dump=True).get())
+            return self.ok(data=LENSE.OBJECTS.GROUP.set(acl=True, dump=True).get())
         
         # Make sure the target group exists
         group = self.ensure(LENSE.OBJECTS.GROUP.set(acl=True, dump=True).get(uuid=target),
@@ -345,5 +345,5 @@ class Group_Get(RequestHandler):
             code  = 404)
         
         # Return the group details
-        return self.ok(group.values())
+        return self.ok(data=group)
             

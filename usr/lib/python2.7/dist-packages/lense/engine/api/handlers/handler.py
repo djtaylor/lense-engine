@@ -304,13 +304,32 @@ class Handler_Open(RequestHandler):
         # Handler checked in
         return self.ok(message='Handler checked out')
         
+class Handler_List(RequestHandler):
+    """
+    Public endpoint for listing available request handlers.
+    """
+    def launch(self):
+        handlers = []
+        
+        # Construct available handlers
+        for h in LENSE.OBJECTS.HANDLER.get():
+            handlers.append({
+                'path': h.path,
+                'method': h.method,
+                'name': h.name,
+                'desc': h.desc
+            })
+            
+        # OK
+        return self.ok(data=handlers)
+        
 class Handler_Get(RequestHandler):
     """
-    Retrieve a listing of API utilities.
+    Retrieve a listing of API handlers.
     """
     def launch(self):
         """
-        Worker method to retrieve a listing of API utilities.
+        Worker method to retrieve a listing of API handlers.
         """
         target = self.get_data('uuid', None)
         
