@@ -203,7 +203,7 @@ class ACLObjects_Get(RequestHandler):
         
         # Get all ACL objects
         if not target:
-            return self.valid(LENSE.OBJECTS.ACL.OBJECTS.get())
+            return self.ok(data=LENSE.OBJECTS.ACL.OBJECTS.set(dump=True).get())
         
         # Get the ACL object
         acl_object = self.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
@@ -366,7 +366,7 @@ class ACLKeys_Get(RequestHandler):
         
         # Get all ACL keys
         if not target:
-            return self.valid(LENSE.OBJECTS.ACL.KEYS.get())
+            return self.ok(data=LENSE.OBJECTS.ACL.KEYS.set(dump=True).get())
         
         # Get the ACL key
         acl_key = self.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
