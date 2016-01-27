@@ -109,8 +109,8 @@ class RequestManager(object):
         # OK
         return LENSE.HTTP.success(response.message, response.data)
     
-    @staticmethod
-    def dispatch(request):
+    @classmethod
+    def dispatch(cls, request):
         """
         Static method for dispatching the request object to the RequestManager.
         
@@ -123,7 +123,7 @@ class RequestManager(object):
             LENSE.SETUP.engine(request)
             
             # Run the request manager
-            return RequestManager(request).run()
+            return cls(request).run()
         
         # Internal request error
         except (EnsureError, RequestError, AuthError) as e:
