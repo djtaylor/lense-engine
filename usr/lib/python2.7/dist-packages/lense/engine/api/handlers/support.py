@@ -16,6 +16,7 @@ class Support_Get(RequestHandler):
                 'uuid': handler.uuid,
                 'path': handler.path,
                 'method': handler.method,
+                'name': handler.name,
                 'desc': handler.desc
             }
         

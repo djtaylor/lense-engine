@@ -144,7 +144,8 @@ class User_ResetPassword(RequestHandler):
         new_passwd = rstring()
 
         # Update the user password
-        self.ensure(user.set_password(new_passwd),
+        user.set_password(new_passwd)
+        self.ensure(user.save(),
             error = 'Failed to reset user password for {0}'.format(target),
             log   = 'Reset password for user {0}'.format(target),
             code  = 500)
@@ -205,7 +206,7 @@ class User_Create(RequestHandler):
                 error = 'Cannot create user with duplicate UUID: {0}'.format(self.get_data('uuid')),
                 code  = 400)
         
-        # Mape new user attributes
+        # Map new user attributes
         attrs = LENSE.REQUEST.map_data([
             'username', 
             'email', 
@@ -222,6 +223,10 @@ class User_Create(RequestHandler):
             error = 'Failed to create user account: username={0}, email={1}'.format(attrs['username'], attrs['email']),
             log   = 'Created user account: username={0}, email={1}'.format(attrs['username'], attrs['email']),
             code  = 500)
+        
+        # Store the user password hash
+        user.set_password(passwd)
+        user.save()
         
         # Grant the user an API key
         api_key = self.ensure(LENSE.OBJECTS.USER.grant_key(user),
