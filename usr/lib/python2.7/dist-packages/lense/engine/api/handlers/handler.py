@@ -338,11 +338,8 @@ class Handler_Get(RequestHandler):
             return self.ok(data=LENSE.OBJECTS.HANDLER.set(acl=True, dump=True).get())
         
         # Look for the handler
-        handler = self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True, dump=True).get(uuid=target), 
+        return self.ok(data=self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True, dump=True).get(uuid=target), 
             isnot = None, 
             error = 'Could not find handler: {0}'.format(target),
             debug = 'Handler {0} exists, retrieved object'.format(target),
-            code  = 404)
-        
-        # Return the handler details
-        return self.ok(data=handler.values())
+            code  = 404))

@@ -4,7 +4,7 @@ from uuid import uuid4
 
 # Lense Libraries
 from lense import MODULE_ROOT
-from lense.common.utils import mod_has_class, valid, invalid, rstring
+from lense.common.utils import mod_has_class, rstring
 
 class RequestOK(object):
     """
@@ -20,8 +20,12 @@ class RequestHandler(object):
     Parent class for defining common/shortcut methods for request handlers.
     """
     def __init__(self):
-        self.obj = LENSE.OBJECTS.HANDLER.get(path=LENSE.REQUEST.path,method=LENSE.REQUEST.method)
-        self.cls = getattr(self.obj, 'cls', 'RequestHandler')
+        self.obj    = LENSE.OBJECTS.HANDLER.get(path=LENSE.REQUEST.path,method=LENSE.REQUEST.method)
+        self.logpre = '<HANDLERS:{0}:{1}@{2}>'.format(
+            self.__class__.__name__, 
+            LENSE.REQUEST.USER.name, 
+            LENSE.REQUEST.client
+        )
     
     def acl_object_supported(self, otype):
         """
@@ -44,11 +48,12 @@ class RequestHandler(object):
     def rstring(self, *args, **kwargs):
         return rstring(*args, **kwargs)
     
-    def valid(self, *args, **kwargs):
-        return valid(*args, **kwargs)
-    
-    def invalid(self, *args, **kwargs):
-        return invalid(*args, **kwargs)
+    def log(self, msg, level='info'):
+        """
+        Log wrapper per handler.
+        """
+        logger = getattr(LENSE.LOG, level, 'info')
+        logger('{0} {1}'.format(self.logpre, msg))
     
     def mod_has_class(self, mod, cls, **kwargs):
         """
@@ -155,10 +160,9 @@ class RequestHandler(object):
         """
         Wrapper method for LENSE.REQUEST.ensure()
         """
-        logpre = '<HANDLERS:{0}>'.format(self.cls)
         
         # Prepend log prefix
         for k in ['debug', 'error', 'log']:
-            if hasattr(kwargs, k):
-                kwargs[k] = '{0} {1}'.format(logpre, kwargs[k])
+            if k in kwargs:
+                kwargs[k] = '{0} {1}'.format(self.logpre, kwargs[k])
         return LENSE.REQUEST.ensure(*args, **kwargs)

@@ -70,9 +70,8 @@ class User_Enable(RequestHandler):
             code  = 400)
         
         # Enable the user account
-        self.ensure(LENSE.OBJECTS.USER.update(target, {
-            'is_active': True
-        }), error = 'Failed to enable user account {0}'.format(target),
+        self.ensure(LENSE.OBJECTS.USER.update(uuid=target, is_active=False), 
+            error = 'Failed to enable user account {0}'.format(target),
             log   = 'Enabled user account {0}'.format(target),
             code  = 500)
         
@@ -109,7 +108,7 @@ class User_Disable(RequestHandler):
             code  = 400)
         
         # Disable the user account
-        self.ensure(LENSE.OBJECTS.USER.update(target, {'is_active': False}), 
+        self.ensure(LENSE.OBJECTS.USER.update(uuid=target, is_active=False), 
             error = 'Failed to disable user account {0}'.format(target),
             log   = 'Disabled user account {0}'.format(target),
             code  = 500)
@@ -279,11 +278,8 @@ class User_Get(RequestHandler):
             return self.ok(data=LENSE.OBJECTS.USER.set(acl=True, dump=True).get())
         
         # Look for the user
-        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True, dump=True).get(uuid=target), 
+        return self.ok(data=self.ensure(LENSE.OBJECTS.USER.set(acl=True, dump=True).get(uuid=target), 
             isnot = None, 
             error = 'Could not find user: {0}'.format(target),
             debug = 'User {0} exists, retrieved object'.format(target),
-            code  = 404)
-        
-        # Return the user details
-        return self.ok(data=user.values())
+            code  = 404))
