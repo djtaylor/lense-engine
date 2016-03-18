@@ -4,9 +4,9 @@ from json import loads as json_loads
 
 # Lense Libraries
 from lense import import_class
+from lense.common.utils import RMapValidate
 from lense.common.exceptions import RequestError, EnsureError, AuthError
 from lense.engine.api.handlers.stats import log_request_stats
-from lense.common.utils import RMapValidate, valid, invalid
 
 def dispatch(request):
     """
