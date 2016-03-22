@@ -31,6 +31,13 @@ class Handler_Delete(RequestHandler):
         self.ensure(handler.protected, 
             value = False, 
             error = 'Cannot delete a protected handler', 
+            debug = 'Handler is protected: {0}'.format(repr(handler.protected)),
+            code  = 403)
+        
+        # Make sure the handler isn't locked
+        self.ensure(handler.locked,
+            value = False,
+            error = 'Cannot delete handler, locked by: {0}'.format(handler.locked_by),
             code  = 403)
         
         # Delete the handler
@@ -53,7 +60,7 @@ class Handler_Create(RequestHandler):
         
         # Creation parameters
         params = {
-            'uuid':       self.create_uuid(),
+            'uuid':       self.get_data('uuid', self.create_uuid()),
             'name':       self.get_data('name'),
             'path':       self.get_data('path'),
             'desc':       self.get_data('desc'),
@@ -64,17 +71,27 @@ class Handler_Create(RequestHandler):
             'enabled':    self.get_data('enabled'),
             'object':     self.get_data('object'),
             'object_key': self.get_data('object_key'),
-            'allow_anon': self.get_data('allow_anon', False),
-            'locked':     False,
-            'locked_by':  None,
+            'allow_anon': self.get_data('allow_anon', False, required=False),
+            'locked':     self.get_data('locked', False, required=False),
+            'locked_by':  self.get_data('locked_by', None, required=False),
             'rmap':       json.dumps(self.get_data('rmap'))
         }
         
-        # Validate the handler object
-        self.ensure(LENSE.OBJECTS.HANDLER.check_object(params['mod'], params['cls']),
-            error = 'Failed to validate handler object',
-            code  = 400)
+        # If disabling validation
+        if self.get_data('validate', True):
+            self.ensure(LENSE.OBJECTS.HANDLER.check_object(params['mod'], params['cls']),
+                error = 'Failed to validate handler object',
+                code  = 400)
         
+        # If manually specifying a UUID
+        if self.get_data('uuid', False):
+            
+            # Make sure the UUID is free
+            self.ensure(LENSE.OBJECTS.HANDLER.exists(uuid=self.get_data('uuid')),
+                value = False,
+                error = 'Handler UUID already exists',
+                code  = 400)
+               
         # Handler attributes string
         attrs_str = 'uuid={0}, name={1}, path={2}, method={3}'.format(params['uuid'], params['name'], params['path'], params['method'])
         
@@ -120,6 +137,8 @@ class Handler_Update(RequestHandler):
         params = {
             'path': self.get_data('path', handler.path),
             'method': self.get_data('method', handler.method),
+            'name': self.get_data('name', handler.name),
+            'desc': self.get_data('desc', handler.desc),
             'mod': self.get_data('mod', handler.mod),
             'cls': self.get_data('cls', handler.cls),
             'rmap': self.get_data('rmap', handler.rmap),
@@ -138,7 +157,8 @@ class Handler_Update(RequestHandler):
         attrs_str = 'uuid={0}, name={1}, path={2}, method={3}'.format(handler.uuid, params['name'], params['path'], params['method'])
 
         # Attempt to update the handler
-        self.ensure(LENSE.OBJECTS.HANDLER.update(handler.uuid, params),
+        self.ensure(LENSE.OBJECTS.HANDLER.select(**{'uuid': handler.uuid}).update(**params),
+            isnot = False,
             log   = 'Updated handler: {0}'.format(attrs_str),
             error = 'Failed to update handler: {0}'.format(attrs_str),
             code  = 500)
@@ -251,12 +271,12 @@ class Handler_Close(RequestHandler):
             debug = 'Handler {0} exists, retrieved object'.format(target),
             code  = 404)
         
-        # Check if the handler is already checked out
-        if handler.locked:
-            return self.valid('Handler already checked in')
+        # Check if the handler is already close
+        if not handler.locked:
+            return self.ok('Handler already checked in')
             
         # Update the lock attributes
-        self.ensure(LENSE.OBJECTS.HANDLER.update(target, {
+        self.ensure(LENSE.OBJECTS.HANDLER.select(**{'uuid': handler.uuid}).update(**{
             'locked': False,
             'locked_by': None
         }), error = 'Failed to check in handler {0}'.format(target),
@@ -292,10 +312,10 @@ class Handler_Open(RequestHandler):
                 value = LENSE.REQUEST.USER.name,
                 error = 'Could not open handler {0}, already checked out by {1}'.format(handler.uuid, handler.locked_by),
                 code  = 400)
-            return self.valid('Handler already checked out by current user')
+            return self.ok(message='Handler already checked out by current user')
         
         # Update the lock attributes
-        self.ensure(LENSE.OBJECTS.HANDLER.update(target, {
+        self.ensure(LENSE.OBJECTS.HANDLER.select(**{'uuid': handler.uuid}).update(**{
             'locked': True,
             'locked_by': LENSE.REQUEST.USER.name
         }), error = 'Failed to check out handler {0}'.format(target),

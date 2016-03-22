@@ -70,7 +70,7 @@ class User_Enable(RequestHandler):
             code  = 400)
         
         # Enable the user account
-        self.ensure(LENSE.OBJECTS.USER.update(uuid=target, is_active=False), 
+        self.ensure(LENSE.OBJECTS.USER.select(**{'uuid': target}).update(uuid=target, is_active=False), 
             error = 'Failed to enable user account {0}'.format(target),
             log   = 'Enabled user account {0}'.format(target),
             code  = 500)
@@ -108,7 +108,7 @@ class User_Disable(RequestHandler):
             code  = 400)
         
         # Disable the user account
-        self.ensure(LENSE.OBJECTS.USER.update(uuid=target, is_active=False), 
+        self.ensure(LENSE.OBJECTS.USER.select(**{'uuid': target}).update(uuid=target, is_active=False), 
             error = 'Failed to disable user account {0}'.format(target),
             log   = 'Disabled user account {0}'.format(target),
             code  = 500)

@@ -18,12 +18,14 @@ class ACLObjects_Delete(RequestHandler):
         
         # Get the ACL object
         acl_object = self.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
+            isnot = None,
             error = 'Could not locate ACL object {0}'.format(target),
             debug = 'ACL object {0} exists, retrieved object'.format(target),
             code  = 404)
     
         # Make sure it has no child entries
-        self.ensure(acl_object.objects, value=dict,
+        self.ensure(acl_object.children, 
+            value = 0,
             error = 'Cannot delete ACL object {0}, contains child entries'.format(target),
             debug = 'ACL object {0} contains no children, delete OK'.format(target),
             code  = 400)
@@ -63,12 +65,22 @@ class ACLObjects_Create(RequestHandler):
             code  = 400)
         
         # Validate the object module/class definitions
-        self.ensure(self.mod_has_class(attrs['object_mod'], attrs['object_cls'], no_launch=True),
-            error = 'Could not find object module/class: {0}.{1}'.format(attrs['object_mod'], attrs['object_cls']),
-            code  = 500)
+        if self.get_data('validate', True):
+            self.ensure(self.mod_has_class(attrs['object_mod'], attrs['object_cls'], no_launch=True),
+                error = 'Could not find object module/class: {0}.{1}'.format(attrs['object_mod'], attrs['object_cls']),
+                code  = 500)
+            
+        # If manually specifying a UUID
+        if self.get_data('uuid', False):
+            
+            # Make sure the UUID is free
+            self.ensure(LENSE.OBJECTS.ACL.OBJECTS.exists(uuid=self.get_data('uuid')),
+                value = False,
+                error = 'ACL object UUID already exists',
+                code  = 400)
             
         # Set a unique ID for the ACL object
-        attrs['uuid'] = self.create_uuid()
+        attrs['uuid'] = self.get_data('uuid', self.create_uuid())
         
         # If a default ACL UUID is supplied
         if self.get_data('def_acl', False):
@@ -206,13 +218,11 @@ class ACLObjects_Get(RequestHandler):
             return self.ok(data=LENSE.OBJECTS.ACL.OBJECTS.set(dump=True).get())
         
         # Get the ACL object
-        acl_object = self.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
-            error = 'Could not locate ACL object {0}'.format(target),
+        return self.ok(data=self.ensure(LENSE.OBJECTS.ACL.OBJECTS.set(dump=True).get(uuid=target), 
+            isnot = None, 
+            error = 'Could not find ACL object: {0}'.format(target),
             debug = 'ACL object {0} exists, retrieved object'.format(target),
-            code  = 404)
-        
-        # Return the ACL object
-        return self.ok(data=acl_object.values())
+            code  = 404))
      
 class ACLKeys_Update(RequestHandler):
     """
@@ -328,12 +338,21 @@ class ACLKeys_Create(RequestHandler):
         
         # ACL key parameters
         params = {
-            'uuid': self.create_uuid(),
+            'uuid': self.get_data('uuid', self.create_uuid()),
             'name': self.get_data('name'),
             'desc': self.get_data('desc'),
             'type_object': self.get_data('type_object'),
             'type_global': self.get_data('type_global')
         }
+        
+        # If manually specifying a UUID
+        if self.get_data('uuid', False):
+            
+            # Make sure the UUID is free
+            self.ensure(LENSE.OBJECTS.ACL.KEYS.exists(uuid=self.get_data('uuid')),
+                value = False,
+                error = 'ACL key UUID already exists',
+                code  = 400)
         
         # Make sure the ACL doesn't exist
         self.ensure(LENSE.OBJECTS.ACL.KEYS.exists(name=params['name']),
@@ -369,10 +388,8 @@ class ACLKeys_Get(RequestHandler):
             return self.ok(data=LENSE.OBJECTS.ACL.KEYS.set(dump=True).get())
         
         # Get the ACL key
-        acl_key = self.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(uuid=target),
-            error = 'Could not locate ACL key {0}'.format(target),
+        return self.ok(data=self.ensure(LENSE.OBJECTS.ACL.KEYS.set(dump=True).get(uuid=target), 
+            isnot = None, 
+            error = 'Could not find ACL key: {0}'.format(target),
             debug = 'ACL key {0} exists, retrieved object'.format(target),
-            code  = 404)
-        
-        # Return the ACL key
-        return self.ok(data=acl_key.values())
+            code  = 404))

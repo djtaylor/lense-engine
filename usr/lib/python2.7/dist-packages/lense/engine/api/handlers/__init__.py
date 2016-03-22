@@ -111,17 +111,20 @@ class RequestHandler(object):
         """
         return RequestOK(message, data)
     
-    def get_data(self, key, default=None):
+    def get_data(self, key, default=None, required=True):
         """
         Retrieve data from the request object. Key parameter can either
         be a single key, or multiple keys delimited by a forward slash.
         
-        :param     key: The key(s) to get
-        :type      key: str
-        :param default: The default value to return if the key is not found
-        :type  default: mixed
+        :param      key: The key(s) to get
+        :type       key: str
+        :param  default: The default value to return if the key is not found
+        :type   default: mixed
+        :param required: Through a RequestError if missing
+        :type  required: bool
         :rtype: mixed
         """
+        retval = default
         
         def _walk_data(keys, data):
             """
@@ -150,11 +153,19 @@ class RequestHandler(object):
         
         # Nested keys
         if '/' in key:
-            return _walk_data(key.split('/'), LENSE.REQUEST.data)
+            retval = _walk_data(key.split('/'), LENSE.REQUEST.data)
         
         # Single key
         else:
-            return LENSE.REQUEST.data.get(key, default)
+            retval = LENSE.REQUEST.data.get(key, default)
+    
+        # If the key is required and missing
+        if required:
+            self.ensure(retval,
+                error = 'Missing value for required key: {0}'.format(key),
+                debug = 'Required key "{0}" present'.format(key),
+                code  = 400)
+        return retval
     
     def ensure(self, *args, **kwargs):
         """

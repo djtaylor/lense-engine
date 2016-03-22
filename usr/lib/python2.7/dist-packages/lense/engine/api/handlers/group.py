@@ -23,6 +23,12 @@ class GroupMember_Remove(RequestHandler):
             error = 'No user UUID found in request data',
             code  = 400)
 
+        # Get the user object
+        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=user),
+            isnot = None,
+            error = 'Could not retrieve user "{0}"'.format(user),
+            code  = 404)
+
         # Get the group object
         group = self.ensure(LENSE.OBJECTS.GROUP.set(acl=True).get(uuid=group),
             error = 'Could not locate group object {0}'.format(group),
@@ -40,6 +46,7 @@ class GroupMember_Remove(RequestHandler):
         
         # Check if the user is already a member of the group
         self.ensure(LENSE.OBJECTS.GROUP.has_member(group.uuid, user.uuid),
+            isnot = False,
             error = 'User {0} is not a member of group {1}'.format(user.uuid, group.uuid),
             code  = 400)
         
@@ -51,11 +58,9 @@ class GroupMember_Remove(RequestHandler):
         
         # Return the response
         return self.ok('Successfully removed group member', {
-            'group': {
-                'name':   group.name,
-                'uuid':   group.uuid,
-                'member': user.uuid
-            }
+            'name':   group.name,
+            'uuid':   group.uuid,
+            'member': user.uuid
         })
 
 class GroupMember_Add(RequestHandler):
@@ -81,7 +86,7 @@ class GroupMember_Add(RequestHandler):
         user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=user),
             isnot = None,
             error = 'Could not retrieve user "{0}"'.format(user),
-            code  = 500)
+            code  = 404)
 
         # Get the group object
         group = self.ensure(LENSE.OBJECTS.GROUP.set(acl=True).get(uuid=group),
@@ -104,11 +109,9 @@ class GroupMember_Add(RequestHandler):
         
         # Return the response
         return self.ok('Successfully added group member', {
-            'group': {
-                'name':   group.name,
-                'uuid':   group.uuid,
-                'member': user.uuid
-            }
+            'name':   group.name,
+            'uuid':   group.uuid,
+            'member': user.uuid
         })
 
 class Group_Delete(RequestHandler):

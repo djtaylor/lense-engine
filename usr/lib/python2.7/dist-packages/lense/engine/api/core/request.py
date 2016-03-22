@@ -53,6 +53,7 @@ class RequestManager(object):
         # Anonymous request
         if LENSE.REQUEST.is_anonymous:
             return LENSE.REQUEST.ensure(self.map['anon'],
+                isnot = False,
                 error = 'Request handler <{0}> does not support anonymous requests'.format(handler_path),
                 log   = 'Processing anonymous request for <{0}>'.format(handler_path),
                 code  = 401)
