@@ -23,7 +23,7 @@ def dispatch(request):
     
     # Critical server error
     except Exception as e:
-        return LENSE.HTTP.exception()
+        return LENSE.HTTP.exception(str(e))
   
 class RequestManager(object):
     """
@@ -47,7 +47,10 @@ class RequestManager(object):
         """
         Authenticate the API request.
         """
-        LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(LENSE.REQUEST.USER.name, repr(LENSE.REQUEST.USER.group)))
+        LENSE.LOG.info('Authenticating API user: {0}, group={1}'.format(
+            LENSE.REQUEST.USER.name, 
+            repr(LENSE.REQUEST.USER.group)
+        ))
         handler_path = '{0}:{1}'.format(LENSE.REQUEST.method, LENSE.REQUEST.path)
         
         # Anonymous request
