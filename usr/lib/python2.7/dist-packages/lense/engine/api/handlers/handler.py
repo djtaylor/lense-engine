@@ -73,8 +73,7 @@ class Handler_Create(RequestHandler):
             'object_key': self.get_data('object_key'),
             'allow_anon': self.get_data('allow_anon', False, required=False),
             'locked':     self.get_data('locked', False, required=False),
-            'locked_by':  self.get_data('locked_by', None, required=False),
-            'rmap':       json.dumps(self.get_data('rmap'))
+            'locked_by':  self.get_data('locked_by', None, required=False)
         }
         
         # If disabling validation
@@ -141,17 +140,12 @@ class Handler_Update(RequestHandler):
             'desc': self.get_data('desc', handler.desc),
             'mod': self.get_data('mod', handler.mod),
             'cls': self.get_data('cls', handler.cls),
-            'rmap': self.get_data('rmap', handler.rmap),
             'enabled': self.get_data('enabled', handler.enabled),
             'protected': self.get_data('protected', handler.protected),
             'object': self.get_data('object', handler.object),
             'object_key': self.get_data('object_key', handler.object_key),
             'allow_anon': self.get_data('allow_anon', handler.allow_anon)
         }
-    
-        # Make sure the request map value is a string
-        if isinstance(params['rmap'], dict):
-            params['rmap'] = json.dumps(params['rmap'])
 
         # Handler attributes string
         attrs_str = 'uuid={0}, name={1}, path={2}, method={3}'.format(handler.uuid, params['name'], params['path'], params['method'])
@@ -181,7 +175,6 @@ class Handler_Validate(RequestHandler):
             'method': self.get_data('method', handler.method),
             'mod': self.get_data('mod', handler.mod),
             'cls': self.get_data('cls', handler.cls),
-            'rmap': self.get_data('rmap', handler.rmap),
             'enabled': self.get_data('enabled', handler.enabled),
             'protected': self.get_data('protected', handler.protected),
             'object': self.get_data('object', handler.object),
@@ -205,14 +198,6 @@ class Handler_Validate(RequestHandler):
         self.ensure(self.acl_object_supported(default.get('object', None)),
             error = 'Failed to validate handler {0}, unsupported object type: {1}'.format(handler.uuid, default['object']),
             code  = 400)
-    
-        # Make sure the request map is valid JSON
-        self.ensure(json.loads,
-            isnot = None,
-            error = 'Failed to validate handler {0} request map'.format(handler.uuid),
-            code  = 400,
-            call  = True,
-            args  = [default['rmap']])
     
         # Validate the module
         self.ensure(self.is_module(default['mod']),
