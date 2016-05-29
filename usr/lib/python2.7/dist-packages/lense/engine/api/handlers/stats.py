@@ -34,6 +34,7 @@ class StatsRequest_Get(RequestHandler):
     - to=<timestamp>
     """
     def __init__(self):
+        super(StatsRequest_Get, self).__init__()
         
         # Filters / filter keys
         self._filters     = {}
@@ -46,8 +47,8 @@ class StatsRequest_Get(RequestHandler):
         """
         Range filter method.
         """
-        if key in self.api.data:
-            range_data = self.api.data[key]
+        if key in LENSE.REQUEST.data:
+            range_data = LENSE.REQUEST.data[key]
             
             # Look for an upper and lower bound
             gt  = None if not 'gt:' in range_data else re.compile(r'^.*gt:([^;]*);.*$').sub(r'\g<1>', range_data)
@@ -71,8 +72,8 @@ class StatsRequest_Get(RequestHandler):
         """
         Generic filter method for single or multiple key values.
         """
-        if key in self.api.data:
-            key_data = self.api.data[key]
+        if key in LENSE.REQUEST.data:
+            key_data = LENSE.REQUEST.data[key]
         
             # Multiple filter values
             if '%7C' in key_data:
@@ -105,5 +106,9 @@ class StatsRequest_Get(RequestHandler):
         self._run_generic_filters()
         self._run_range_filters()
         
-        # Return the queryset
-        return self.ok(data=set_response(APIRequestStats.objects.filter(**self._filters).values(), '[]'))
+        # Get the request stats
+        return self.ok(data=self.ensure(LENSE.OBJECTS.STATS.set(acl=True, dump=True).get(), 
+            isnot = None, 
+            error = 'Failed to retrieve request statistics',
+            debug = 'Retrieved request statistics',
+            code  = 500))

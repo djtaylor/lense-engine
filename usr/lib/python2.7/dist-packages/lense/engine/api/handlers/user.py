@@ -271,15 +271,6 @@ class User_Get(RequestHandler):
         
         :rtype: valid|invalid
         """
-        target = self.get_data('uuid', None)
-        
-        # Return all users
-        if not target:
-            return self.ok(data=LENSE.OBJECTS.USER.set(acl=True, dump=True).get())
-        
-        # Look for the user
-        return self.ok(data=self.ensure(LENSE.OBJECTS.USER.set(acl=True, dump=True).get(uuid=target), 
-            isnot = None, 
-            error = 'Could not find user: {0}'.format(target),
-            debug = 'User {0} exists, retrieved object'.format(target),
-            code  = 404))
+        return self.ok(data=self.ensure(LENSE.OBJECTS.USER.get(**LENSE.REQUEST.data),
+            isnot   = None,
+            default = []))

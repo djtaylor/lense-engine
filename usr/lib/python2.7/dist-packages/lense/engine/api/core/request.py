@@ -8,6 +8,10 @@ from lense.common.utils import RMapValidate
 from lense.common.exceptions import RequestError, EnsureError, AuthError
 from lense.engine.api.handlers.stats import log_request_stats
 
+# Request timers
+REQ_START = None
+REQ_END   = None
+
 def dispatch(request):
     """
     The entry point for all API requests. Called for all endpoints from the Django
@@ -81,10 +85,6 @@ class RequestManager(object):
         """
         Worker method for processing the incoming API request.
         """
-        req_received = int(round(time() * 1000))
-        
-        # Request map validator: disable for now, needs an overhaul
-        #RMapValidate(self.map['rmap']).validate(LENSE.REQUEST.data)
         
         # Set up the request handler and get a response
         response = import_class(self.map['class'], self.map['module']).launch()
@@ -92,10 +92,19 @@ class RequestManager(object):
         # Close any open SocketIO connections
         LENSE.SOCKET.disconnect()
         
-        # Response sent timestamp
-        rsp_sent = int(round(time() * 1000))
+        # OK
+        return LENSE.HTTP.success(response.message, response.data)
+    
+    @classmethod
+    def log_request(cls, response=None, code=200):
+        """
+        Class method for logging request data.
         
-        # Log the request
+        :param response: The internal response object
+        :type  response: object
+        """
+        
+        # Log the request stats
         log_request_stats({
             'path': LENSE.REQUEST.path,
             'method': LENSE.REQUEST.method,
@@ -104,14 +113,11 @@ class RequestManager(object):
             'client_group': LENSE.REQUEST.USER.group,
             'endpoint': LENSE.REQUEST.host,
             'user_agent': LENSE.REQUEST.agent,
-            'retcode': 200,
+            'retcode': code,
             'req_size': int(LENSE.REQUEST.size),
-            'rsp_size': int(getsizeof(response.data)) + int(getsizeof(response.message)),
-            'rsp_time_ms': rsp_sent - req_received
+            'rsp_size': int(getsizeof(getattr(response, 'data', ''))) + int(getsizeof(getattr(response, 'message', ''))),
+            'rsp_time_ms': REQ_END - REQ_START
         })
-        
-        # OK
-        return LENSE.HTTP.success(response.message, response.data)
     
     @classmethod
     def dispatch(cls, request):
@@ -123,11 +129,20 @@ class RequestManager(object):
         """
         try:
             
+            # Request timer start
+            REQ_START = int(round(time() * 1000))
+            
             # Setup Lense commons
             LENSE.SETUP.engine(request)
             
             # Run the request manager
-            return cls(request).run()
+            response = cls(request).run()
+        
+            # Request timer end
+            REQ_END = int(round(time() * 1000))
+        
+            # Return the response
+            return response
         
         # Internal request error
         except (EnsureError, RequestError, AuthError) as e:

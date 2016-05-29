@@ -210,19 +210,9 @@ class ACLObjects_Get(RequestHandler):
         """
         Worker method for returning a list of ACL object types.
         """
-        target   = self.get_data('uuid', None)
-        detailed = self.get_data('detailed', False)
-        
-        # Get all ACL objects
-        if not target:
-            return self.ok(data=LENSE.OBJECTS.ACL.OBJECTS.set(dump=True).get())
-        
-        # Get the ACL object
-        return self.ok(data=self.ensure(LENSE.OBJECTS.ACL.OBJECTS.set(dump=True).get(uuid=target), 
-            isnot = None, 
-            error = 'Could not find ACL object: {0}'.format(target),
-            debug = 'ACL object {0} exists, retrieved object'.format(target),
-            code  = 404))
+        return self.ok(data=self.ensure(LENSE.OBJECTS.ACL.OBJECTS.get(**LENSE.REQUEST.data),
+            isnot   = None, 
+            default = []), acl=False)
      
 class ACLKeys_Update(RequestHandler):
     """
@@ -381,15 +371,6 @@ class ACLKeys_Get(RequestHandler):
         """
         Worker method used to construct the ACL definitions object.
         """
-        target = self.get_data('uuid', None)
-        
-        # Get all ACL keys
-        if not target:
-            return self.ok(data=LENSE.OBJECTS.ACL.KEYS.set(dump=True).get())
-        
-        # Get the ACL key
-        return self.ok(data=self.ensure(LENSE.OBJECTS.ACL.KEYS.set(dump=True).get(uuid=target), 
-            isnot = None, 
-            error = 'Could not find ACL key: {0}'.format(target),
-            debug = 'ACL key {0} exists, retrieved object'.format(target),
-            code  = 404))
+        return self.ok(data=self.ensure(LENSE.OBJECTS.ACL.KEYS.get(**LENSE.REQUEST.data),
+            isnot   = None, 
+            default = []))

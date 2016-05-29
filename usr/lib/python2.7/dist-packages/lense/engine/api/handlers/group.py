@@ -334,15 +334,6 @@ class Group_Get(RequestHandler):
         """
         Worker method for retrieving group details.
         """
-        target = self.get_data('uuid', None)
-        
-        # Retrieving all groups
-        if not target:
-            return self.ok(data=LENSE.OBJECTS.GROUP.set(acl=True, dump=True).get())
-        
-        # Make sure the target group exists
-        return self.ok(data=self.ensure(LENSE.OBJECTS.GROUP.set(acl=True, dump=True).get(uuid=target),
-            isnot = None,
-            error = 'Could not locate group object {0}'.format(target),
-            debug = 'Group object {0} exists, retrieved object'.format(target),
-            code  = 404))
+        return self.ok(data=self.ensure(LENSE.OBJECTS.GROUP.get(**LENSE.REQUEST.data),
+            isnot   = None,
+            default = []))

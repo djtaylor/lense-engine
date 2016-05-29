@@ -21,4 +21,4 @@ class Support_Get(RequestHandler):
             }
         
         # Return server capabilities
-        return self.ok(data=support)
+        return self.ok(data=support, acl=False)

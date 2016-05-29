@@ -351,15 +351,6 @@ class Handler_Get(RequestHandler):
         """
         Worker method to retrieve a listing of API handlers.
         """
-        target = self.get_data('uuid', None)
-        
-        # Return all handlers
-        if not target:
-            return self.ok(data=LENSE.OBJECTS.HANDLER.set(acl=True, dump=True).get())
-        
-        # Look for the handler
-        return self.ok(data=self.ensure(LENSE.OBJECTS.HANDLER.set(acl=True, dump=True).get(uuid=target), 
-            isnot = None, 
-            error = 'Could not find handler: {0}'.format(target),
-            debug = 'Handler {0} exists, retrieved object'.format(target),
-            code  = 404))
+        return self.ok(data=self.ensure(LENSE.OBJECTS.HANDLER.get(**LENSE.REQUEST.data),
+            isnot   = None,
+            default = []))
