@@ -158,7 +158,7 @@ class Handler_Update(RequestHandler):
             code  = 500)
 
         # Successfully updated handler
-        return self.ok(message='Successfully updated handler.')
+        return self.ok(data='Successfully updated handler.', process=False)
 
 class Handler_Validate(RequestHandler):
     """
