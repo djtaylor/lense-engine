@@ -161,7 +161,7 @@ class User_ResetPassword(RequestHandler):
         LENSE.MAIL.send(*[x[1] for x in email_attrs])
         
         # OK
-        return self.ok('Reset password for user: {0}'.format(target))
+        return self.ok(data='Reset password for user: {0}'.format(target))
     
 class User_Create(RequestHandler):
     """

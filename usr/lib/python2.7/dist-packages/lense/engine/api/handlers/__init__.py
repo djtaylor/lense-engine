@@ -112,6 +112,13 @@ class RequestHandler(object):
         """
         Request was successfull, return a response object.
         """
+        def not_empty(objects):
+            return 
+        
+        self.ensure(True if (data) else False, 
+            isnot = False,
+            code  = 404, 
+            error = 'Could not find any objects!')
         return RequestOK(message, LENSE.OBJECTS.process(data, acl=acl, dump=dump, noop=not process))
     
     def get_objects(self, acl=True, dump=True, filter={}):
