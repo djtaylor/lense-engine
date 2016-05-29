@@ -233,7 +233,7 @@ class Handler_Validate(RequestHandler):
         self._validate(handler)
         
         # Utility is valid
-        return self.ok(message='Handler validation succeeded.')
+        return self.ok(data='Handler validation succeeded.', process=False)
 
 class Handler_Close(RequestHandler):
     """
@@ -268,7 +268,7 @@ class Handler_Close(RequestHandler):
             log   = 'Checking in hander {0}: locked=False'.format(target))
         
         # Handler checked in
-        return self.ok(message='Handler checked in')
+        return self.ok(data='Handler checked in', process=False)
     
 class Handler_Open(RequestHandler):
     """
@@ -307,7 +307,7 @@ class Handler_Open(RequestHandler):
             log   = 'Checking out hander {0}: locked=True'.format(target))
         
         # Handler checked in
-        return self.ok(message='Handler checked out')
+        return self.ok(data='Handler checked out', process=False)
         
 class Handler_List(RequestHandler):
     """
@@ -326,7 +326,7 @@ class Handler_List(RequestHandler):
             })
             
         # OK
-        return self.ok(data=handlers)
+        return self.ok(data=handlers, process=False)
         
 class Handler_Get(RequestHandler):
     """
