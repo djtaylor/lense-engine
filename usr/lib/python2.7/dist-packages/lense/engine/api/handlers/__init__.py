@@ -112,9 +112,6 @@ class RequestHandler(object):
         """
         Request was successfull, return a response object.
         """
-        def not_empty(objects):
-            return 
-        
         self.ensure(True if (data) else False, 
             isnot = False,
             code  = 404, 
