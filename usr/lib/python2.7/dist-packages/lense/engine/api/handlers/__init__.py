@@ -108,12 +108,11 @@ class RequestHandler(object):
         if key in LENSE.REQUEST.data:
             del LENSE.REQUEST.data[key]
     
-    def ok(self, message='Request successfull', data={}, acl=True, dump=True):
+    def ok(self, message='Request successfull', data={}, acl=True, dump=True, process=True):
         """
         Request was successfull, return a response object.
         """
-        if process:
-            return RequestOK(message, LENSE.OBJECTS.process(data, acl=acl, dump=dump))
+        return RequestOK(message, LENSE.OBJECTS.process(data, acl=acl, dump=dump, noop=not process))
     
     def get_objects(self, acl=True, dump=True, filter={}):
         """
