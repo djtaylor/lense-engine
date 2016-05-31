@@ -107,7 +107,7 @@ class StatsRequest_Get(RequestHandler):
         self._run_range_filters()
         
         # Get the request stats
-        return self.ok(data=self.ensure(LENSE.OBJECTS.STATS.set(acl=True, dump=True).get(), 
+        return self.ok(data=self.ensure(LENSE.OBJECTS.STATS.get(), 
             isnot = None, 
             error = 'Failed to retrieve request statistics',
             debug = 'Retrieved request statistics',

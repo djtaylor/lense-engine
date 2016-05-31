@@ -24,13 +24,13 @@ class GroupMember_Remove(RequestHandler):
             code  = 400)
 
         # Get the user object
-        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=user),
+        user = self.ensure(LENSE.OBJECTS.USER.get(uuid=user),
             isnot = None,
             error = 'Could not retrieve user "{0}"'.format(user),
             code  = 404)
 
         # Get the group object
-        group = self.ensure(LENSE.OBJECTS.GROUP.set(acl=True).get(uuid=group),
+        group = self.ensure(LENSE.OBJECTS.GROUP.get(uuid=group),
             error = 'Could not locate group object {0}'.format(group),
             debug = 'Group object {0} exists, retrieved object'.format(group),
             code  = 404)
@@ -83,13 +83,13 @@ class GroupMember_Add(RequestHandler):
             code  = 400)
 
         # Get the user object
-        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=user),
+        user = self.ensure(LENSE.OBJECTS.USER.get(uuid=user),
             isnot = None,
             error = 'Could not retrieve user "{0}"'.format(user),
             code  = 404)
 
         # Get the group object
-        group = self.ensure(LENSE.OBJECTS.GROUP.set(acl=True).get(uuid=group),
+        group = self.ensure(LENSE.OBJECTS.GROUP.get(uuid=group),
             isnot = None,
             error = 'Could not locate group object {0}'.format(group),
             debug = 'Group object {0} exists, retrieved object'.format(group),
@@ -128,7 +128,7 @@ class Group_Delete(RequestHandler):
             code  = 400)
 
         # Get the group
-        group = self.ensure(LENSE.OBJECTS.GROUP.set(acl=True).get(uuid=target),
+        group = self.ensure(LENSE.OBJECTS.GROUP.get(uuid=target),
             error = 'Could not locate group object {0}'.format(target),
             debug = 'Group object {0} exists, retrieved object'.format(target),
             code  = 404)
@@ -251,7 +251,7 @@ class Group_Update(RequestHandler):
             return self.invalid('Failed to update group <{0}>, not found in database or access denied'.format(self.group))
         
         # Load the group object
-        self.group_obj = LENSE.OBJECTS.GROUP.set(acl=True).get(uuid=self.group)
+        self.group_obj = LENSE.OBJECTS.GROUP.get(uuid=self.group)
         
         # Update the group profile
         profile_status = self._update_profile()

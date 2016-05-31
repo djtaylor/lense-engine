@@ -19,7 +19,7 @@ class User_Delete(RequestHandler):
             debug = 'Launching {0} for handler object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
-        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=target), 
+        user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
             isnot = None, 
             error = 'Could not find user: {0}'.format(target),
             debug = 'User {0} exists, retrieved object'.format(target),
@@ -57,7 +57,7 @@ class User_Enable(RequestHandler):
             debug = 'Launching {0} for user object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
-        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=target), 
+        user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
             isnot = None, 
             error = 'Could not find user: {0}'.format(target),
             debug = 'User {0} exists, retrieved object'.format(target),
@@ -95,7 +95,7 @@ class User_Disable(RequestHandler):
             debug = 'Launching {0} for user object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
-        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=target), 
+        user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
             isnot = None, 
             error = 'Could not find user: {0}'.format(target),
             debug = 'User {0} exists, retrieved object'.format(target),
@@ -133,7 +133,7 @@ class User_ResetPassword(RequestHandler):
             debug = 'Launching {0} for user object {1}'.format(__name__, self.get_data('uuid')))
         
         # Look for the user
-        user = self.ensure(LENSE.OBJECTS.USER.set(acl=True).get(uuid=target), 
+        user = self.ensure(LENSE.OBJECTS.USER.get(uuid=target), 
             isnot = None, 
             error = 'Could not find user: {0}'.format(target),
             debug = 'User {0} exists, retrieved object'.format(target),
