@@ -29,25 +29,7 @@ class RequestHandler(object):
     
         # Objects map
         self.objmap = LENSE.REQUEST.path.upper()
-    
-    def acl_object_supported(self, otype):
-        """
-        Ensure a particular ACL object type is supported.
-        """
-        acl_objects = LENSE.OBJECTS.ACL.get_objects()
         
-        # Object type is none, supported
-        if not otype:
-            return True
-        
-        # Check if the object is supported
-        supported = False
-        for acl_obj in acl_objects:
-            if acl_obj['type'] == object:
-                supported = True
-                break
-        return supported
-    
     def rstring(self, *args, **kwargs):
         return rstring(*args, **kwargs)
     
@@ -108,7 +90,7 @@ class RequestHandler(object):
         if key in LENSE.REQUEST.data:
             del LENSE.REQUEST.data[key]
     
-    def ok(self, message='Request successfull', data={}, acl=True, dump=True, process=True):
+    def ok(self, message='Request successfull', data={}):
         """
         Request was successfull, return a response object.
         """
@@ -116,14 +98,7 @@ class RequestHandler(object):
             isnot = False,
             code  = 404, 
             error = 'Could not find any objects!')
-        return RequestOK(message, LENSE.OBJECTS.process(data, acl=acl, dump=dump, noop=not process))
-    
-    def get_objects(self, acl=True, dump=True, filter={}):
-        """
-        Helper method for retrieving handler specific objects.
-        """
-        LENSE.LOG.info('GET_OBJECTS:filter: {0}'.format(filter))
-        return getattr(LENSE.OBJECTS, self.objmap).set(acl=acl, dump=dump, count=LENSE.REQUEST.count).get(**filter)
+        return RequestOK(message, data)
     
     def get_data(self, key, default=None, required=True):
         """
