@@ -77,9 +77,6 @@ class RequestManager(object):
             error = LENSE.OBJECTS.USER.auth_error,
             log   = 'Authentication successful for user {0}'.format(LENSE.REQUEST.USER.name),
             code  = 401)
-        
-        # Authorized request handler access
-        LENSE.AUTH.ACL.request()
     
     def run(self):
         """
