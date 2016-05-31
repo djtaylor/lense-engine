@@ -174,6 +174,7 @@ class User_Create(RequestHandler):
         username = self.get_data('username')
         passwd   = self.get_data('password', rstring())
         passwd_c = self.get_data('password_confirm', None)
+        group    = self.get_data('group', None)
         
         # Make sure the user doesn't exist
         self.ensure(LENSE.OBJECTS.USER.exists(username=username), 
@@ -226,6 +227,19 @@ class User_Create(RequestHandler):
         # Store the user password hash
         user.set_password(passwd)
         user.save()
+        
+        # Get the group object
+        group = self.ensure(LENSE.OBJECTS.GROUP.get(uuid=group),
+            isnot = None,
+            error = 'Could not locate group object {0}'.format(group),
+            debug = 'Group object {0} exists, retrieved object'.format(group),
+            code  = 404)
+
+        # Add the user to the group
+        self.ensure(LENSE.OBJECTS.GROUP.add_member(group.uuid, user.uuid),
+            error = 'Failed to add user {0} to group {1}'.format(user.uuid, group.uuid),
+            log   = 'Added user {0} to group {1}'.format(user.uuid, group.uuid),
+            code  = 500)
         
         # Grant the user an API key
         api_key = self.ensure(LENSE.OBJECTS.USER.grant_key(user),
