@@ -11,7 +11,7 @@ class Support_Get(RequestHandler):
         support  = {}
         
         # Get handlers
-        for handler in LENSE.OBJECTS.HANDLER.get():
+        for handler in LENSE.OBJECTS.HANDLER.get_internal():
             support[handler.name] = {
                 'uuid': handler.uuid,
                 'path': handler.path,
@@ -21,4 +21,4 @@ class Support_Get(RequestHandler):
             }
         
         # Return server capabilities
-        return self.ok(data=support, acl=False)
+        return self.ok(data=support)

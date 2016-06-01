@@ -60,20 +60,23 @@ class Handler_Create(RequestHandler):
         
         # Creation parameters
         params = {
-            'uuid':       self.get_data('uuid', self.create_uuid()),
-            'name':       self.get_data('name'),
-            'path':       self.get_data('path'),
-            'desc':       self.get_data('desc'),
-            'method':     self.get_data('method'),
-            'mod':        self.get_data('mod'),
-            'cls':        self.get_data('cls'),
-            'protected':  self.get_data('protected'),
-            'enabled':    self.get_data('enabled'),
-            'object':     self.get_data('object'),
-            'object_key': self.get_data('object_key'),
-            'allow_anon': self.get_data('allow_anon', False, required=False),
-            'locked':     self.get_data('locked', False, required=False),
-            'locked_by':  self.get_data('locked_by', None, required=False)
+            'uuid':        self.get_data('uuid', self.create_uuid()),
+            'name':        self.get_data('name'),
+            'path':        self.get_data('path'),
+            'desc':        self.get_data('desc'),
+            'method':      self.get_data('method'),
+            'mod':         self.get_data('mod'),
+            'cls':         self.get_data('cls'),
+            'protected':   self.get_data('protected'),
+            'enabled':     self.get_data('enabled'),
+            'object':      self.get_data('object'),
+            'object_key':  self.get_data('object_key'),
+            'allow_anon':  self.get_data('allow_anon', False, required=False),
+            'locked':      self.get_data('locked', False, required=False),
+            'locked_by':   self.get_data('locked_by', None, required=False),
+            'permissions': {
+                'all_read': True
+            }
         }
         
         # If disabling validation
@@ -158,7 +161,7 @@ class Handler_Update(RequestHandler):
             code  = 500)
 
         # Successfully updated handler
-        return self.ok(data='Successfully updated handler.', process=False)
+        return self.ok(data='Successfully updated handler.')
 
 class Handler_Validate(RequestHandler):
     """
@@ -233,7 +236,7 @@ class Handler_Validate(RequestHandler):
         self._validate(handler)
         
         # Utility is valid
-        return self.ok(data='Handler validation succeeded.', process=False)
+        return self.ok(data='Handler validation succeeded.')
 
 class Handler_Close(RequestHandler):
     """
@@ -268,7 +271,7 @@ class Handler_Close(RequestHandler):
             log   = 'Checking in hander {0}: locked=False'.format(target))
         
         # Handler checked in
-        return self.ok(data='Handler checked in', process=False)
+        return self.ok(data='Handler checked in')
     
 class Handler_Open(RequestHandler):
     """
@@ -307,7 +310,7 @@ class Handler_Open(RequestHandler):
             log   = 'Checking out hander {0}: locked=True'.format(target))
         
         # Handler checked in
-        return self.ok(data='Handler checked out', process=False)
+        return self.ok(data='Handler checked out')
         
 class Handler_List(RequestHandler):
     """
@@ -317,7 +320,7 @@ class Handler_List(RequestHandler):
         handlers = []
         
         # Construct available handlers
-        for h in LENSE.OBJECTS.HANDLER.get():
+        for h in LENSE.OBJECTS.HANDLER.get_internal():
             handlers.append({
                 'path': h.path,
                 'method': h.method,
@@ -326,7 +329,7 @@ class Handler_List(RequestHandler):
             })
             
         # OK
-        return self.ok(data=handlers, process=False)
+        return self.ok(data=handlers)
         
 class Handler_Get(RequestHandler):
     """

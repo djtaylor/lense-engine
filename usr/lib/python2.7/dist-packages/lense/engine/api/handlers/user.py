@@ -161,7 +161,7 @@ class User_ResetPassword(RequestHandler):
         LENSE.MAIL.send(*[x[1] for x in email_attrs])
         
         # OK
-        return self.ok(data='Reset password for user: {0}'.format(target), process=False)
+        return self.ok(data='Reset password for user: {0}'.format(target))
     
 class User_Create(RequestHandler):
     """
@@ -174,7 +174,7 @@ class User_Create(RequestHandler):
         username = self.get_data('username')
         passwd   = self.get_data('password', rstring())
         passwd_c = self.get_data('password_confirm', None)
-        group    = self.get_data('group', None)
+        group    = self.get_data('group', required=True)
         
         # Make sure the user doesn't exist
         self.ensure(LENSE.OBJECTS.USER.exists(username=username), 
