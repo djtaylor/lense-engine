@@ -20,7 +20,7 @@ class RequestHandler(object):
     Parent class for defining common/shortcut methods for request handlers.
     """
     def __init__(self):
-        self.obj    = LENSE.OBJECTS.HANDLER.get(path=LENSE.REQUEST.path,method=LENSE.REQUEST.method)
+        self.obj    = LENSE.OBJECTS.HANDLER.get_internal(path=LENSE.REQUEST.path,method=LENSE.REQUEST.method)
         self.logpre = '<HANDLERS:{0}:{1}@{2}>'.format(
             self.__class__.__name__, 
             LENSE.REQUEST.USER.name, 
