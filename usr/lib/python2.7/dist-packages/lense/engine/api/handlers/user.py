@@ -1,5 +1,6 @@
 from lense.common.vars import USERS
 from lense.engine.api.handlers import RequestHandler
+from lense.engine.api.core.manifest import LenseManifest
 from lense.common.utils import rstring
 
 ERR_NO_UUID='No user UUID found in request data'
@@ -278,6 +279,20 @@ class User_Get(RequestHandler):
     """
     API class designed to retrieve the details of a single user, or a list of all user
     details.
+    
+    [
+        {
+            "return": "@ok",
+            "kwargs": {
+                "data": {
+                    "ensure": ""
+                }
+            }
+        }
+    ]
+    
+    
+    
     """
     def launch(self):
         """
@@ -288,3 +303,25 @@ class User_Get(RequestHandler):
         return self.ok(data=self.ensure(LENSE.OBJECTS.USER.get(**LENSE.REQUEST.data),
             isnot   = None,
             default = []))
+
+class User_Get_Manifest(RequestHandler):
+    
+    def launch(self):
+        return LenseManifest.parse([
+            {
+                "type": "return",
+                "@ok": {
+                    "data": {
+                        "@ensure": {
+                            "result": {
+                                "LENSE.OBJECTS.USER.get": {
+                                    "kwargs": "LENSE.REQUEST.data"
+                                }
+                            },
+                            "isnot": None,
+                            "default": [] 
+                        }
+                    }
+                }
+            }
+        ])

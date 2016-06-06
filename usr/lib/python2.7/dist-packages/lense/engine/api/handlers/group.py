@@ -170,29 +170,7 @@ class Group_Update(RequestHandler):
         # Target group / group object
         self.group       = LENSE.AUTH.ACL.target_object()
         self.group_obj   = None
-    
-    def _update_global_permissions(self):
-        """
-        Update the group global permissions.
-        """
-        if ('permissions' in LENSE.REQUEST.data) and ('global' in self.get_data('permissions')):
-            try:
-                self.group_obj.global_permissions_set(self.get_data('permissions/global'))
-            except Exception as e:
-                return self.invalid(LENSE.API.LOG.exception('Failed to update global permissions: {0}'.format(str(e))))
-        return self.valid()
-    
-    def _update_object_permissions(self):
-        """
-        Update the group object permissions.
-        """
-        if ('permissions' in LENSE.REQUEST.data) and ('object' in self.get_data('permissions')):
-            try:
-                self.group_obj.object_permissions_set(self.get_data('permissions/object'))
-            except Exception as e:
-                return self.invalid(LENSE.API.LOG.exception('Failed to update object permissions: {0}'.format(str(e))))
-        return self.valid()
-    
+        
     def _update_profile(self):
         """
         Update the group profile
@@ -257,16 +235,6 @@ class Group_Update(RequestHandler):
         profile_status = self._update_profile()
         if not profile_status['valid']:
             return profile_status
-        
-        # Update global permissions
-        gperms_status = self._update_global_permissions()
-        if not gperms_status['valid']:
-            return gperms_status
-        
-        # Update object permissions
-        operms_status = self._update_object_permissions()
-        if not operms_status['valid']:
-            return operms_status
         
         # Return the response
         return self.ok('Successfully updated group properties', {
