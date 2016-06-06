@@ -50,7 +50,7 @@ class LenseManifest(object):
         Map manifest arguments to ensure method.
         """
         kwargs['result'] = cls.mapResult(kwargs['result'])
-        return cls.ensure(**kwargs)
+        return kwargs
     
     @classmethod
     def ensure(cls, *args, **kwargs):
@@ -86,5 +86,5 @@ class LenseManifest(object):
                     # Ensure response data
                     if "@ensure" in stanza["@ok"]["data"]:
                         
-                        return cls.ok(data=cls.ensure(**cls.mapEnsure(stanza["@ok"]["data"]["@ensure"])))
+                        return cls.ok(data=cls.ensure(**cls.mapEnsure(**stanza["@ok"]["data"]["@ensure"])))
                         

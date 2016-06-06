@@ -57,27 +57,29 @@ class Handler_Create(RequestHandler):
         """
         Worker method for creating a new handler.
         """
+        manifest = self.get_data('manifest', False, required=False)
         
         # Creation parameters
         params = {
-            'uuid':        self.get_data('uuid', self.create_uuid()),
-            'name':        self.get_data('name'),
-            'path':        self.get_data('path'),
-            'desc':        self.get_data('desc'),
-            'method':      self.get_data('method'),
-            'mod':         self.get_data('mod'),
-            'cls':         self.get_data('cls'),
-            'protected':   self.get_data('protected'),
-            'enabled':     self.get_data('enabled'),
-            'object':      self.get_data('object'),
-            'object_key':  self.get_data('object_key'),
-            'allow_anon':  self.get_data('allow_anon', False, required=False),
-            'locked':      self.get_data('locked', False, required=False),
-            'locked_by':   self.get_data('locked_by', None, required=False),
+            'uuid':         self.get_data('uuid', self.create_uuid()),
+            'name':         self.get_data('name'),
+            'path':         self.get_data('path'),
+            'desc':         self.get_data('desc'),
+            'method':       self.get_data('method'),
+            'mod':          self.get_data('mod'),
+            'cls':          self.get_data('cls'),
+            'protected':    self.get_data('protected'),
+            'enabled':      self.get_data('enabled'),
+            'object':       self.get_data('object'),
+            'object_key':   self.get_data('object_key'),
+            'allow_anon':   self.get_data('allow_anon', False, required=False),
+            'locked':       self.get_data('locked', False, required=False),
+            'locked_by':    self.get_data('locked_by', None, required=False),
+            'use_manifest': self.get_data('use_manifest', False, required=False),
             'permissions': {
                 'all_read': True
             }
-        }
+        }    
         
         # If disabling validation
         if self.get_data('validate', True):
@@ -103,6 +105,10 @@ class Handler_Create(RequestHandler):
             error = 'Failed to create handler: {0}'.format(attrs_str),
             log   = 'Created handler: {0}'.format(attrs_str),
             code  = 500)
+         
+        # If using a manifest
+        if manifest and params['use_manifest']:
+            LENSE.OBJECTS.HANDLER.createManifest(params['uuid'], manifest)
             
         # OK
         return self.ok('Successfully created handler', {
