@@ -70,8 +70,6 @@ class Handler_Create(RequestHandler):
             'cls':          self.get_data('cls'),
             'protected':    self.get_data('protected'),
             'enabled':      self.get_data('enabled'),
-            'object':       self.get_data('object'),
-            'object_key':   self.get_data('object_key'),
             'allow_anon':   self.get_data('allow_anon', False, required=False),
             'locked':       self.get_data('locked', False, required=False),
             'locked_by':    self.get_data('locked_by', None, required=False),

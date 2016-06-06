@@ -1,3 +1,5 @@
+from six import string_types
+
 class RequestOK(object):
     """
     Construct a basic response object for passing back to 
@@ -11,8 +13,11 @@ class LenseManifest(object):
     """
     Experimental class for parsing a manifest to return handler objects.
     """
-    @classmethod
-    def mapCommon(cls, path):
+    def __init__(self, manifest):
+        self.manifest  = manifest
+        self.variables = {}
+
+    def mapCommon(self, path):
         """
         Map manifest commons call.
         """
@@ -33,52 +38,58 @@ class LenseManifest(object):
             retval = getattr(retval, p)
         return retval
     
-    @classmethod
-    def mapResult(cls, obj):
+    def mapResult(self, obj):
         for path,params in obj.iteritems():
             
             if path.startswith('LENSE.'):
-                method = cls.mapCommon(path)
+                method = self.mapCommon(path)
                 args   = params.get('args', [])
-                kwargs = cls.mapCommon(params.get('kwargs'))
+                kwargs = self.mapCommon(params.get('kwargs'))
                 
                 return method(*args, **kwargs)
     
-    @classmethod
-    def mapEnsure(cls, **kwargs):
+    def mapEnsure(self, **kwargs):
         """
         Map manifest arguments to ensure method.
         """
-        kwargs['result'] = cls.mapResult(kwargs['result'])
+        kwargs['result'] = self.mapResult(kwargs['result'])
         return kwargs
-    
-    @classmethod
-    def ensure(cls, *args, **kwargs):
+                
+    def ensure(self, *args, **kwargs):
         """
         Wrapper method for LENSE.REQUEST.ensure()
         """
         return LENSE.REQUEST.ensure(*args, **kwargs)
     
-    @classmethod
-    def ok(cls, message='Request successfull', data={}):
+    def ok(self, message='Request successfull', data={}):
         """
         Request was successfull, return a response object.
         """
-        cls.ensure(True if (data) else False, 
+        self.ensure(True if (data) else False, 
             isnot = False,
             code  = 404, 
             error = 'Could not find any objects!')
         return RequestOK(message, data)
     
-    @classmethod
-    def parse(cls, manifest):
-        variables = {}
+    def launch(self, manifest):
 
         # Process each manifest stanza        
-        for stanza in manifest:
+        for stanza in self.manifest:
             
-            # Return a response
+            # Store a variable
+            if stanza['type'] == 'store':
+                self.variables[stanza['key']] = self.map(stanza['map'])
+            
+            # Execute a method
+            if stanza['type'] == 'exec':
+                self.map(stanza['map'])
+            
+            # Return a value
             if stanza['type'] == 'return':
+                return self.map(stanza['map'])
+                
+            # Return a response
+            if stanza['type'] == 'response':
                 
                 # Return OK
                 if "@ok" in stanza:
@@ -86,5 +97,5 @@ class LenseManifest(object):
                     # Ensure response data
                     if "@ensure" in stanza["@ok"]["data"]:
                         
-                        return cls.ok(data=cls.ensure(**cls.mapEnsure(**stanza["@ok"]["data"]["@ensure"])))
+                        return self.ok(data=self.ensure(**self.mapEnsure(**stanza["@ok"]["data"]["@ensure"])))
                         

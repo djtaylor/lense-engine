@@ -5,6 +5,7 @@ from json import loads as json_loads
 # Lense Libraries
 from lense import import_class
 from lense.common.utils import RMapValidate
+from lense.engine.api.core.manifest import LenseManifest
 from lense.common.exceptions import RequestError, EnsureError, AuthError
 from lense.engine.api.handlers.stats import log_request_stats
 
@@ -83,8 +84,13 @@ class RequestManager(object):
         Worker method for processing the incoming API request.
         """
         
-        # Set up the request handler and get a response
-        response = import_class(self.map['class'], self.map['module']).launch()
+        # If using a manifest
+        if self.map['use_manifest']:
+            response = LenseManifest(LENSE.OBJECTS.HANDLER.getManifest(handler=self.map['uuid'])).launch()
+            
+        # Use internal code
+        else:
+            response = import_class(self.map['class'], self.map['module']).launch()
         
         # Close any open SocketIO connections
         LENSE.SOCKET.disconnect()
