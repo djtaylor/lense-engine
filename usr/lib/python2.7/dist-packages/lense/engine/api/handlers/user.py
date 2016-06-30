@@ -1,6 +1,5 @@
 from lense.common.vars import USERS
 from lense.engine.api.handlers import RequestHandler
-from lense.engine.api.core.manifest import LenseManifest
 from lense.common.utils import rstring
 
 ERR_NO_UUID='No user UUID found in request data'

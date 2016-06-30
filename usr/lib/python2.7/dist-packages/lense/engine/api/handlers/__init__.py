@@ -94,10 +94,6 @@ class RequestHandler(object):
         """
         Request was successfull, return a response object.
         """
-        self.ensure(True if (data) else False, 
-            isnot = False,
-            code  = 404, 
-            error = 'Could not find any objects!')
         return RequestOK(message, data)
     
     def get_data(self, key, default=None, required=True):
@@ -151,6 +147,7 @@ class RequestHandler(object):
         # If the key is required and missing
         if required:
             self.ensure(retval,
+                isnot = None,
                 error = 'Missing value for required key: {0}'.format(key),
                 debug = 'Required key "{0}" present'.format(key),
                 code  = 400)

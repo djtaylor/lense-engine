@@ -4,9 +4,8 @@ from json import loads as json_loads
 
 # Lense Libraries
 from lense import import_class
-from lense.common.utils import RMapValidate
-from lense.engine.api.core.manifest import LenseManifest
-from lense.common.exceptions import RequestError, EnsureError, AuthError
+from lense.common.manifest.interface import ManifestInterface
+from lense.common.exceptions import RequestError, EnsureError, AuthError, ManifestError
 from lense.engine.api.handlers.stats import log_request_stats
 
 # Request timers
@@ -86,7 +85,7 @@ class RequestManager(object):
         
         # If using a manifest
         if self.map['use_manifest']:
-            response = LenseManifest(LENSE.OBJECTS.HANDLER.getManifest(handler=self.map['uuid'])).launch()
+            response = ManifestInterface(LENSE.OBJECTS.HANDLER.getManifest(handler=self.map['uuid'])).execute()
             
         # Use internal code
         else:
@@ -148,6 +147,6 @@ class RequestManager(object):
             return response
         
         # Internal request error
-        except (EnsureError, RequestError, AuthError) as e:
+        except (EnsureError, RequestError, AuthError, ManifestError) as e:
             LENSE.LOG.exception(e.message)
             return LENSE.HTTP.error(e.message, e.code)
