@@ -12,6 +12,11 @@ from lense.engine.api.handlers.stats import log_request_stats
 REQ_START = None
 REQ_END   = None
 
+class RequestOK(object):
+    def __init__(self, message, data):
+        self.message = message
+        self.data    = data
+
 def dispatch(request):
     """
     The entry point for all API requests. Called for all endpoints from the Django
@@ -83,11 +88,14 @@ class RequestManager(object):
         Worker method for processing the incoming API request.
         """
         
-        # If using a manifest
-        if self.map['use_manifest']:
-            response = ManifestInterface(LENSE.OBJECTS.HANDLER.getManifest(handler=self.map['uuid'])).execute()
+        # If using the manifest backend
+        if self.map['backend'] == 'manifest':
+            output   = ManifestInterface(LENSE.OBJECTS.HANDLER.get_manifest(handler=self.map['uuid'])).execute()
             
-        # Use internal code
+            # Construct a response object
+            response = RequestOK(data=output['data'], message=output['message'])
+            
+        # Use Python backend
         else:
             response = import_class(self.map['class'], self.map['module']).launch()
         
