@@ -87,17 +87,10 @@ class RequestManager(object):
         """
         Worker method for processing the incoming API request.
         """
-        
-        # If using the manifest backend
-        if self.map['backend'] == 'manifest':
-            output   = ManifestInterface(LENSE.OBJECTS.HANDLER.get_manifest(handler=self.map['uuid'])).execute()
+        output   = ManifestInterface(LENSE.OBJECTS.HANDLER.get_manifest(handler=self.map['uuid'])).execute()
             
-            # Construct a response object
-            response = RequestOK(data=output['data'], message=output['message'])
-            
-        # Use Python backend
-        else:
-            response = import_class(self.map['class'], self.map['module']).launch()
+        # Construct a response object
+        response = RequestOK(data=output['data'], message=output['message'])
         
         # Close any open SocketIO connections
         LENSE.SOCKET.disconnect()
