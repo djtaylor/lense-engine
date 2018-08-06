@@ -1,0 +1,18 @@
+Source: lense-engine
+Section: python
+Priority: optional
+Maintainer: David Taylor <djtaylor13@gmail.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.5
+Homepage: https://github.com/djtaylor/lense-engine
+Vcs-Git: git://github.com/djtaylor/lense-engine.git
+Vcs-Browser: https://github.com/djtaylor/lense-engine
+X-Python-Version: >= 2.7
+
+Package: lense-engine
+Architecture: all
+Depends: lense-common (>= 0.1.1), 
+	     lense-client (>= 0.1.1), 
+	     apache2 (>= 2.4.7),
+	     libapache2-mod-wsgi (>= 3.4)
+Description: Lense API Engine.
