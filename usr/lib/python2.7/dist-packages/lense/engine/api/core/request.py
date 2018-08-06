@@ -28,6 +28,7 @@ def dispatch(request):
     :rtype: object
     """
     try:
+        LENSE.LOG.info('<DISPATCH> [{0}] {1}'.format(LENSE.uuid4(), request))
         return RequestManager.dispatch(request)
 
     # Critical server error
@@ -87,6 +88,9 @@ class RequestManager(object):
         """
         Worker method for processing the incoming API request.
         """
+        LENSE.LOG.info('<REQUEST> Incoming request: uuid={0}, path={1}, method={2}, user_agent={3}'.format(
+            LENSE.REQUEST.uuid, LENSE.REQUEST.path, LENSE.REQUEST.method, LENSE.REQUEST.agent
+        ))
         output   = ManifestInterface(LENSE.OBJECTS.HANDLER.get_manifest(handler=self.map['uuid'])).execute()
 
         # Construct a response object
